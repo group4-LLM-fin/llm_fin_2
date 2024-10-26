@@ -1,4 +1,4 @@
-from utils.ModelAPI import getResponse
+from utils.ModelAPI import getStreamResponse
 from dotenv import load_dotenv
 from utils.MessageGeminiFormat import transform_response_for_gemini
 
@@ -7,8 +7,7 @@ load_dotenv()
 def responseGenerate(memory_variables, model = 'gemini-1.5-flash'):
     # Append the new user message to the chat history
     history = memory_variables.get("chat_history", [])
-    print(history)
-    response = getResponse(model=model, history=history)
+    response = getStreamResponse(model=model, history=history)
     
     if 'gpt' in model:
         for chunk in response:

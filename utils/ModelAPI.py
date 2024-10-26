@@ -9,7 +9,7 @@ load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-def getResponse(model = "gpt-4o-mini", history = None):
+def getStreamResponse(model = "gpt-4o-mini", history = None):
 
     if history is None:
         history = []
