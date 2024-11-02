@@ -13,17 +13,33 @@ class Database:
         self.cursor = self.connection.cursor()
     
     def create_table(self, table_name, columns):
-        column_defs = ", ".join([f"{col} {dtype}" for col, dtype in columns.items()])
+        # Initialize list for column definitions
+        column_defs = []
+        
+        for col, dtype in columns.items():
+            if "FOREIGN KEY" in dtype:
+                data_type, fk_reference = dtype.split(", FOREIGN KEY ")
+                fk_reference = fk_reference.strip()  # Remove any leading/trailing spaces
+                column_def = f"{col} {data_type} {fk_reference}"
+            else:
+                column_def = f"{col} {dtype}"
+            
+            column_defs.append(column_def)
+        
+        column_defs_sql = ", ".join(column_defs)
+        
+        # Create the SQL query for table creation
         create_table_query = sql.SQL("CREATE TABLE IF NOT EXISTS {} ({})").format(
             sql.Identifier(table_name),
-            sql.SQL(column_defs)
+            sql.SQL(column_defs_sql)
         )
+        
         try:
             self.cursor.execute(create_table_query)
             self.connection.commit()
         except Exception as e:
-            self.rollback()
-            print("Error creating table:", e)
+            self.connection.rollback()
+            print(f"Error creating table {table_name}:", e)
 
     def insert(self, table_name, **data):
         columns = data.keys()
@@ -101,6 +117,49 @@ class Database:
         except Exception as e:
             self.rollback()
             print("Error deleting data:", e)
+
+    def execute(self, query, params=None):
+        """Execute any SQL command."""
+        try:
+            self.cursor.execute(query, params)
+            self.connection.commit()
+        except Exception as e:
+            self.rollback()
+            print("Error executing query:", e)
+
+    def execute_many(self, query, records):
+        """Execute an SQL command for multiple records."""
+        try:
+            self.cursor.executemany(query, records)
+            self.connection.commit()
+            print("Records inserted successfully")
+        except Exception as e:
+            self.connection.rollback()
+            print("Error executing query:", e)
+
+
+    def add_column(self, table_name, column_definition):
+        alter_table_query = sql.SQL("ALTER TABLE {} ADD COLUMN {}").format(
+            sql.Identifier(table_name),
+            sql.SQL(column_definition)
+        )
+        try:
+            self.cursor.execute(alter_table_query)
+            self.connection.commit()
+        except Exception as e:
+            self.rollback()
+            print(f"Error adding column to table {table_name}:", e)
+
+    def get_max_id(self, table_name):
+        self.reconnect()
+        query = f'SELECT COALESCE(MAX(id), 0) FROM "{table_name}";'
+        self.connection.commit()
+        result = self.execute(query)
+        return result[0] if result else 0
+
+    def reconnect(self):
+        self.close()
+        self.__init__()
 
     def rollback(self):
         self.connection.rollback()
