@@ -1,1 +1,3 @@
-from pages import Data, Chat
+import streamlit as st
+
+st.title('Welcome')

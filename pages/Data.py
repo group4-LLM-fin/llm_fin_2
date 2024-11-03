@@ -3,157 +3,149 @@ from langchain.embeddings import OpenAIEmbeddings
 from database.vectorDB import VectorDB
 from dotenv import load_dotenv
 import os
-import fitz
-from pdf2image import convert_from_path
-from unidecode import unidecode
-import numpy as np
+import pytesseract
+from database.baseDatabase import Database
+import voyageai
+from OCR.analyzeReport import find_table, get_metadata
 import pandas as pd
-load_dotenv()
-pytesseract.pytesseract.tesseract_cmd = r"D:\TesereactOCR\tesseract.exe"
-openai_api = os.getenv('OPENAI_API_KEY')
-
-embedder = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_api)
-
-def find_table(pdf_path):
-    # images = convert_from_path(pdf_path, dpi=300)
-    pdf_document = fitz.open(pdf_path)
-
-    signals = {
-        1: ('balance sheet', ['tien mat', 'vang', 'da quy']),
-        2: ('income statement', ['thu nhap lai thuan']),
-        3: ('cash flow', ['luu chuyen tien']),
-        4: ('thuyet minh', ['don vi bao cao', 'dac diem hoat dong']),
-    }
-    thuyet_minh_part = []
-    result = [np.nan] * pdf_document.page_count
-    k = 1
-
-    for i, page_number in enumerate(range(pdf_document.page_count)):  # Use enumerate to get index i
-        page = pdf_document[page_number]
-        
-        # Chuyển đổi trang thành ảnh với độ phân giải 150 DPI
-        pix = page.get_pixmap(dpi=150)
-
-        # Convert fitz.Pixmap to PIL.Image.Image
-        image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-
-        text = pytesseract.image_to_string(image, lang='vie')  # Pass PIL image to pytesseract
-        test_text = unidecode(text.lower())
-
-        if k in signals:
-            label, current_signals = signals[k]
-            if any(signal in test_text for signal in current_signals):
-                result[i] = k
-                k += 1
-            else:
-                result[i] = result[i-1] if i > 0 else np.nan
-        else:
-            result[i] = result[i-1] if i > 0 else np.nan
-
-        if result[i] == 4:
-            first_half, second_half = split_text_by_sentences(text)
-            embedding1 = embedder.embed_documents(texts=first_half)
-            embedding1 = embedding1[0]
-            embedding2 = embedder.embed_documents(texts=second_half)
-            embedding2 = embedding2[0]
-            db.insert_embedding(
-                table_name="EXPLANATION",
-                bank = bank,
-                year = year,
-                quarter = quarter, 
-                text = first_half, 
-                page = i, 
-                part = 1, 
-                Embedding = embedding1
-            )
-            db.insert_embedding(
-                table_name="EXPLANATION",
-                bank = bank,
-                year = year,
-                quarter = quarter, 
-                text = second_half, 
-                page = i, 
-                part = 2, 
-                Embedding = embedding2
-            )
-            
-    result_filled = pd.Series(result).map({1: 'balance sheet', 2: 'income statement', 3: 'cash flow', 4: 'thuyet minh'}).fillna('muc luc').tolist()
-    
-    # Logging each section range for display
-    sections = {
-        "Muc Luc": (0, result_filled.index('balance sheet') - 1),
-        "Balance Sheet": (result_filled.index('balance sheet'), result_filled.index('income statement') - 1),
-        "Income Statement": (result_filled.index('income statement'), result_filled.index('cash flow') - 1),
-        "Cash Flow": (result_filled.index('cash flow'), result_filled.index('thuyet minh') - 1),
-        "Thuyet Minh": (result_filled.index('thuyet minh'), len(result_filled) - 1)
-    }
-
-    return sections
-
-def split_text_by_sentences(text):
-    sentences = text.split('. ')
-    midpoint = len(sentences) // 2
-    first_half = '. '.join(sentences[:midpoint]) + '.'
-    second_half = '. '.join(sentences[midpoint:])
-    return first_half, second_half
-
-st.title("Page 2")
-st.write("You can upload your file here!")
-
+import google.generativeai as genai
+from OCR.readReport import readBalanceSheet, readIncome, readCashFlow
+from openai import OpenAI
+import fitz
+from PIL import Image
+import numpy as np
 
 load_dotenv()
 
-user = os.getenv('USER')
-host = os.getenv('HOST')
-port = os.getenv('PORT')
-password = os.getenv('PASSWORD')
-dbname = os.getenv('DB1')
+@st.cache_resource
+def get_env():
+    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+    openai_api = os.getenv('OPENAI_API_KEY')
+    voyage_api = os.getenv('VOYAGE_API')
 
-del os.environ["PORT"]
+    OpenAIembedder = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_api)
+    VoyageEmbedder = voyageai.Client(api_key=voyage_api)
+    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+    gemini = genai.GenerativeModel("gemini-1.5-pro")
+    gpt = OpenAI(api_key=openai_api)
 
-port = os.getenv('PORT')
+    return OpenAIembedder, VoyageEmbedder, gemini, gpt
 
-db_config = {
-    'user': user,
-    'password': password,
-    'host': host,
-    'port': port,
-    'dbname': dbname
-}
+@st.cache_resource
+def get_dbconn():
+    user = os.getenv('USER')
+    host = os.getenv('HOST')
+    port = os.getenv('PORT')
+    password = os.getenv('PASSWORD')
+    dbname = os.getenv('DB1')
+    port = os.getenv('PORT')
 
-db = VectorDB(**db_config)
+    db_config = {
+        'user': user,
+        'password': password,
+        'host': host,
+        'port': port,
+        'dbname': dbname
+    }
 
+    vectordb = VectorDB(**db_config)
+    db = Database(**db_config)
+    return db, vectordb
+
+@st.cache_data
+def get_bankName(_db):
+    banks = _db.read("BANK", "bankname, abbreviation, bankid")
+    sorted_banks = sorted(banks, key=lambda x: x[-1])
+    banks_name = [f"{bank[0]} ({bank[1]})" for bank in sorted_banks]
+    bankid = [bank[-1] for bank in sorted_banks]
+    return banks_name, bankid
+
+db, vectordb = get_dbconn()
+banks_name, bankid = get_bankName(db)
+openaiEmbeeder, voyageEmbedder, gemini, gpt = get_env()
+
+st.title("Upload Bank Financial reports")
 uploaded_file = st.file_uploader("Choose a file", type = 'pdf', accept_multiple_files = False)
 
-st.write("Financial Statement Information ")
+if st.button("Upload"):
 
+    if uploaded_file:
+        
+        pdf_document = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+        images = []
 
-bank = st.text_input("Enter your bank:")
+        with st.spinner("Scanning file"):
+            for page_num in range(len(pdf_document)):
+                page = pdf_document[page_num]
+                pix = page.get_pixmap(dpi=150)  # Set the DPI for better quality
+                image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                images.append(image)  
 
+        with st.spinner(text="Analyzing file..."):
+            sections, metadata_text = find_table(images)
+            sections_df = pd.DataFrame.from_dict(sections, orient='index', columns=['Start Page', 'End Page'])
+            sections_df['Start Page'] += 1
+            sections_df['End Page'] += 1
 
-year = st.number_input("Enter your year:", min_value=2000, max_value=2024, step=1)
+        # Display section info
+        st.subheader("**Section Information:**")
+        st.table(sections_df)
 
+        tab1, tab2, tab3, tab4 = st.tabs(["Metadata", "Balance Sheet", "Income Statement", "Cash Flow"])
 
-quarter = st.selectbox("Enter your quarter (optional):", options=["None", 1, 2, 3, 4])
+        with tab1:
+            # Analyze metadata
+            with st.spinner(text="Getting metadata"):
+                metadata = get_metadata(extracted_text= metadata_text, model = gemini)
+                
+                metadata_df = dict()
+                # Find bank name
+                for i in range(len(bankid)):
+                    if str(bankid[i]) == str(metadata['bankid']):
+                        metadata_df['Bank'] = banks_name[i]
+                        break
+                metadata_df['Symbol'] = metadata['banksymbol']
+                metadata_df['Bank CITAD Id'] = metadata['bankid']
+                metadata_df['Year'] = metadata['year']
+                metadata_df['Quarter'] = metadata['quarter']
 
-if st.button("Submit"):
-    st.write("**Bank:**", bank)
-    st.write("**Year:**", year)
-    st.write("**Quarter:**", quarter if quarter != "None" else "Not specified")
+            st.subheader("**Report data:**")
+            st.table(metadata_df)
 
-if uploaded_file:
-    st.write(f"Processing file: {uploaded_file.name}")
+        with tab2:
+            # Analyze Balancesheet
+            with st.spinner('Read Balance Sheet...'):
+                balancesheetPage = sections["Balance Sheet"]
+                balancesheet = dict()
+                for i in range(balancesheetPage[0], balancesheetPage[1]+1):
+                    balancesheetPageInfo = readBalanceSheet(image=images[i], model=gpt)
+                    balancesheet.update(balancesheetPageInfo)
+            
+            st.subheader("**Balance sheet:**")
+            st.table(balancesheet)
 
-    # Save the uploaded file to disk to be able to read it with PyPDF2
-    with open(uploaded_file.name, "wb") as f:
-        f.write(uploaded_file.getbuffer())
+        # Analyze Income statement
+        with tab3:
+            with st.spinner('Read Income Statement...'):
+                isPage = sections["Income Statement"]
+                incomestatement = dict()
+                for i in range(isPage[0], isPage[1]+1):
+                    isPageInfo = readIncome(image=images[i], model=gpt)
+                    incomestatement.update(isPageInfo)
+            
+            st.subheader("**Income Statement:**")
+            st.table(incomestatement)
 
-    # Find sections and Thuyet Minh part
-    sections = find_table(uploaded_file.name)
-
-    # Display section info
-    st.write("**Section Information:**")
-    for section, (start, end) in sections.items():
-        st.write(f"{section}: Pages {start} to {end}")
+        # Analyze Cash Flow Statement
+        with tab4:
+            with st.spinner('Read Cash Flow Statement...'):
+                cfPage = sections["Cash Flow Statement"]
+                cashflow = dict()
+                for i in range(cfPage[0], cfPage[1]+1):
+                    cfPageInfo = readCashFlow(image=images[i], model=gpt)
+                    cashflow.update(cfPageInfo)
+            
+            st.subheader("**Cash Flow Statement:**")
+            st.table(cashflow)
 
         

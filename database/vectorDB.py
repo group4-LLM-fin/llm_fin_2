@@ -105,6 +105,14 @@ class VectorDB:
         table_name = kwargs.get("table_name")
         limit = kwargs.get("limit", 5)
         selected_columns = kwargs.get("columns", ["id", "reportId", "text"]) 
+        # Get multiple where clauses from kwargs
+        where_clauses = kwargs.get("where_clauses", [])
+        
+        # Combine where clauses with 'AND' or 'OR'
+        if where_clauses:
+            where_clause = " AND ".join(where_clauses)  # Combine with AND, change to OR if needed
+        else:
+            where_clause = "1=1"  # No condition, selects all
 
         try:
             # Generate the query embedding using the embedder
@@ -118,6 +126,7 @@ class VectorDB:
                 query = f"""
                     SELECT {column_str}, embedding {distance_dict[distance]} {embedding_str} AS distance
                     FROM "{table_name}"
+                    WHERE {where_clause}
                     ORDER BY distance
                     LIMIT {limit};
                 """

@@ -45,7 +45,7 @@ class Database:
         columns = data.keys()
         values = tuple(data.values())
         
-        insert_query = sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
+        insert_query = sql.SQL('INSERT INTO {} ({}) VALUES ({})').format(
             sql.Identifier(table_name),
             sql.SQL(", ").join(map(sql.Identifier, columns)),
             sql.SQL(", ").join(sql.Placeholder() * len(values))

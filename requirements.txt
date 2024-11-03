@@ -92,3 +92,6 @@ wheel==0.44.0
 wordcloud==1.9.3
 openai==0.28.1
 python-dotenv==1.0.1
+pytesseract
+unidecode
+pdf2image
