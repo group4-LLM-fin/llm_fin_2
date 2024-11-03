@@ -3,7 +3,7 @@ from langchain.embeddings import OpenAIEmbeddings
 from database.vectorDB import VectorDB
 from dotenv import load_dotenv
 import os
-import pytesseract
+import fitz
 from pdf2image import convert_from_path
 from unidecode import unidecode
 import numpy as np
@@ -15,7 +15,8 @@ openai_api = os.getenv('OPENAI_API_KEY')
 embedder = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_api)
 
 def find_table(pdf_path):
-    images = convert_from_path(pdf_path, dpi=300)
+    # images = convert_from_path(pdf_path, dpi=300)
+    pdf_document = fitz.open(pdf_path)
 
     signals = {
         1: ('balance sheet', ['tien mat', 'vang', 'da quy']),
@@ -23,11 +24,20 @@ def find_table(pdf_path):
         3: ('cash flow', ['luu chuyen tien']),
         4: ('thuyet minh', ['don vi bao cao', 'dac diem hoat dong']),
     }
-    result = [np.nan] * len(images)
+    thuyet_minh_part = []
+    result = [np.nan] * pdf_document.page_count
     k = 1
 
-    for i, image in enumerate(images):
-        text = pytesseract.image_to_string(image, lang='vie')
+    for i, page_number in enumerate(range(pdf_document.page_count)):  # Use enumerate to get index i
+        page = pdf_document[page_number]
+        
+        # Chuyển đổi trang thành ảnh với độ phân giải 150 DPI
+        pix = page.get_pixmap(dpi=150)
+
+        # Convert fitz.Pixmap to PIL.Image.Image
+        image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+
+        text = pytesseract.image_to_string(image, lang='vie')  # Pass PIL image to pytesseract
         test_text = unidecode(text.lower())
 
         if k in signals:
