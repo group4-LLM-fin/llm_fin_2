@@ -13,7 +13,7 @@ from OCR.readReport import readBalanceSheet, readIncome, readCashFlow
 from openai import OpenAI
 import fitz
 from PIL import Image
-import numpy as np
+from OCR.insertData import insert_all
 
 load_dotenv()
 
@@ -147,5 +147,21 @@ if st.button("Upload"):
             
             st.subheader("**Cash Flow Statement:**")
             st.table(cashflow)
+        
+        # Upload to database
+        with st.spinner('Upload your fiancial statement...'):
+            try:
+                insert_all(
+                    metadata=metadata,
+                    bs = balancesheet,
+                    ics= incomestatement,
+                    cf = cashflow,
+                    vectordb= vectordb,
+                    db = db
+                )
+                st.success('Upload your report successfully')
+            
+            except Exception as e:
+                raise e
 
         

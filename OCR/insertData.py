@@ -130,11 +130,11 @@ def insert_cashflow(metadata, response_llm: str|dict, vectordb: VectorDB, db: Da
 def insert_chunk():
     pass
 
-def insert_all(metadata, response_llm: str|dict, vectordb: VectorDB, db: Database):
+def insert_all(metadata, bs: str|dict, ics: str|dict, cf: str|dict , vectordb: VectorDB, db: Database):
     insert_metadata(metadata, db)
-    insert_balancesheet(metadata, response_llm, vectordb, db)
-    insert_income(metadata, response_llm, vectordb, db)
-    insert_cashflow(metadata, response_llm, vectordb, db)
+    insert_balancesheet(metadata, bs, vectordb, db)
+    insert_income(metadata, ics, vectordb, db)
+    insert_cashflow(metadata, cf, vectordb, db)
 
 if __name__ == '__main__':
     metadata = {
