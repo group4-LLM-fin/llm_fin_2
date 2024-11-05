@@ -24,6 +24,10 @@ st.set_page_config(
 
 @st.cache_resource
 def get_env():
+    # try:
+    #     tesseract_dir = os.getenv('TESSERACT')
+    #     pytesseract.pytesseract.tesseract_cmd = tesseract_dir
+    # except:
     pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
     openai_api = os.getenv('OPENAI_API_KEY')
     voyage_api = os.getenv('VOYAGE_API')

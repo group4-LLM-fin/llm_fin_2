@@ -12,7 +12,6 @@ st.set_page_config(
     page_icon="graphics/anya_logo.png" 
 )
 
-
 @st.cache_resource
 def get_dbconn():
     user = os.getenv('USER')
