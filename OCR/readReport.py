@@ -13,9 +13,9 @@ def encode_image(image: Image.Image) -> str:
     # Read the image data and encode it to base64
     return base64.b64encode(buffered.read()).decode('utf-8')
 
-def readBalanceSheet(image, model:OpenAI):
+def readBalanceSheet(image, model:OpenAI, metadata):
     base64_image = encode_image(image)
-
+    year = metadata['year']
     response = model.chat.completions.create(
     model="gpt-4o",
     messages=[
@@ -31,9 +31,11 @@ def readBalanceSheet(image, model:OpenAI):
             },
             {"type": "text", 
             "text": """
-            Trích xuất tất cả các thông tin trong ảnh này, trả về kết quả của ngày gần nhất. 
-            Chỉ trả về dạng Json, ngoài ra không giải thích gì thêm, Json phải là format dạng flat không phải dạng nested. 
-            Trả về các tên tài khoản là tiếng Anh.
+            Extract all the information in this image, return the result of the below year.
+            Return only Json format, no further explanation, Json must be flat format not nested.
+            Return the account names in English. Specify positive and negative numbers. 
+            Do not use decimal number and do not add any comma or dot into the amount.
+            For example:
             Ví dụ:
             {
                 "Cash and gold": amount,
@@ -44,8 +46,9 @@ def readBalanceSheet(image, model:OpenAI):
                 "Provision for deposits at and loans to other credit institutions": amount,
                 "Trading securities": amount,
                 ...
-            }  
-            """},
+            }
+            The year is   
+            """ + str(year)},
         ],
         }
     ],
@@ -64,9 +67,9 @@ def readBalanceSheet(image, model:OpenAI):
 
     return res
 
-def readIncome(image, model:OpenAI):
+def readIncome(image, model:OpenAI, metadata):
     base64_image = encode_image(image)
-
+    year = metadata['year']
     response = model.chat.completions.create(
     model="gpt-4o",
     messages=[
@@ -82,10 +85,11 @@ def readIncome(image, model:OpenAI):
             },
             {"type": "text", 
             "text": """
-            Trích xuất tất cả các thông tin trong ảnh này, trả về kết quả của ngày gần nhất. 
-            Chỉ trả về dạng Json, ngoài ra không giải thích gì thêm, Json phải là format dạng flat không phải dạng nested. 
-            Trả về các tên tài khoản là tiếng Anh.
-            Ví dụ:
+            Extract all the information in this image, return the result of the most recent day/year.
+            Return only Json format, no further explanation, Json must be flat format not nested.
+            Return the account names in English. Specify positive and negative numbers. 
+            Do not use decimal number and do not add any comma or dot into the amount.
+            For example:
             {
             "Interest and similar income": amount,
             "Interest and similar expenses": amount,
@@ -97,7 +101,8 @@ def readIncome(image, model:OpenAI):
             ...
             Extract all accounts
             }  
-            """},
+            The year is 
+            """ + str(year)},
         ],
         }
     ],
@@ -116,9 +121,9 @@ def readIncome(image, model:OpenAI):
 
     return res
 
-def readCashFlow(image, model:OpenAI):
+def readCashFlow(image, model:OpenAI, metadata):
     base64_image = encode_image(image)
-
+    year = metadata['year']
     response = model.chat.completions.create(
     model="gpt-4o",
     messages=[
@@ -134,18 +139,20 @@ def readCashFlow(image, model:OpenAI):
             },
             {"type": "text", 
             "text": """
-            Trích xuất tất cả các thông tin trong ảnh này, trả về kết quả của ngày gần nhất. 
-            Chỉ trả về dạng Json, ngoài ra không giải thích gì thêm, Json phải là format dạng flat không phải dạng nested. 
-            Trả về các tên tài khoản là tiếng Anh.
-            Ví dụ:
+            Extract all the information in this image, return the result of the below year.
+            Return only Json format, no further explanation, Json must be flat format not nested.
+            Return the account names in English. Specify positive and negative numbers. 
+            Do not use decimal number and do not add any comma or dot into the amount.
+            For example:
             {
             "Cash flow from operating activities" : amount,
             "Cash flow from investing activities" : amount,
             "Cash flow from financing activities": amount
             ...
             Extract all information
-            }  
-            """},
+            }
+            The year is 
+            """+str(year)},
         ],
         }
     ],

@@ -5,27 +5,27 @@ from unidecode import unidecode
 import pandas as pd
 import json
 import google.generativeai as genai
+import streamlit as st
 
 
 def find_table(images):
-    # images = convert_from_path(pdf_path, dpi=300)
 
     signals = {
         1: ('balance sheet', ['tien mat', 'vang', 'da quy']),
-        2: ('income statement', ['thu nhap lai thuan']),
+        2: ('income statement', ['thu nhap lai thuan', 'lai thuan','chi phi hoat dong', 'chi phi', 'tong loi nhuan']),
         3: ('cash flow', ['luu chuyen tien']),
-        4: ('thuyet minh', ['don vi bao cao', 'dac diem hoat dong']),
+        4: ('thuyet minh', ['don vi bao cao', 'dac diem hoat dong', 'thanh lap va hoat dong']),
     }
     metadata = ""
     result = [np.nan] * len(images)
     k = 1
-
+    progress_bar = st.progress(0, text='Optical Character Recognizing...')
     for i, image in enumerate(images): 
 
         text = pytesseract.image_to_string(image, lang='vie')  # Pass PIL image to pytesseract
         test_text = unidecode(text.lower())
         
-        if i <= 3:
+        if i < 3:
             metadata += text
             metadata += " "
 
@@ -38,11 +38,11 @@ def find_table(images):
                 result[i] = result[i-1] if i > 0 else np.nan
         else:
             result[i] = result[i-1] if i > 0 else np.nan
-        
-        if k == 4:
+        if k == 5:
             for j in range(i+1,len(result)):
-                result[j] = k
+                result[j] = 4
             break
+        progress_bar.progress(i+1, 'Optical Character Recognizing...')
         
         # if result[i] == 4:
         #     first_half, second_half = split_text_by_sentences(text)
@@ -70,7 +70,7 @@ def find_table(images):
         #         part = 2, 
         #         Embedding = embedding2
         #     )
-            
+    progress_bar.empty()
     result_filled = pd.Series(result).map({1: 'balance sheet', 2: 'income statement', 3: 'cash flow', 4: 'thuyet minh'}).fillna('muc luc').tolist()
 
     # Logging each section range for display

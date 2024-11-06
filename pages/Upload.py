@@ -28,7 +28,7 @@ def get_env():
     #     tesseract_dir = os.getenv('TESSERACT')
     #     pytesseract.pytesseract.tesseract_cmd = tesseract_dir
     # except:
-    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+    pytesseract.pytesseract.tesseract_cmd = r'Tesseract-OCR\tesseract.exe'
     openai_api = os.getenv('OPENAI_API_KEY')
     voyage_api = os.getenv('VOYAGE_API')
 
@@ -85,18 +85,19 @@ with col2:
 uploaded_file = st.file_uploader("Choose a file", type = 'pdf', accept_multiple_files = False)
 
 if st.button("Upload"):
-
+    
     if uploaded_file:
-        
+        progress_bar = st.progress(0,"Scanning file...")
         pdf_document = fitz.open(stream=uploaded_file.read(), filetype="pdf")
         images = []
 
-        with st.spinner("Scanning file"):
-            for page_num in range(len(pdf_document)):
-                page = pdf_document[page_num]
-                pix = page.get_pixmap(dpi=150)  # Set the DPI for better quality
-                image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-                images.append(image)  
+        for page_num in range(len(pdf_document)):
+            page = pdf_document[page_num]
+            pix = page.get_pixmap(dpi=200)  # Set the DPI for better quality
+            image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            images.append(image)  
+            progress_bar.progress(page_num+1, "Scanning file...")
+        progress_bar.empty()
 
         with st.spinner(text="Analyzing file..."):
             sections, metadata_text = find_table(images)
@@ -135,7 +136,7 @@ if st.button("Upload"):
                 balancesheetPage = sections["Balance Sheet"]
                 balancesheet = dict()
                 for i in range(balancesheetPage[0], balancesheetPage[1]+1):
-                    balancesheetPageInfo = readBalanceSheet(image=images[i], model=gpt)
+                    balancesheetPageInfo = readBalanceSheet(image=images[i], model=gpt, metadata = metadata)
                     balancesheet.update(balancesheetPageInfo)
             
             st.subheader("**Balance sheet:**")
@@ -147,7 +148,7 @@ if st.button("Upload"):
                 isPage = sections["Income Statement"]
                 incomestatement = dict()
                 for i in range(isPage[0], isPage[1]+1):
-                    isPageInfo = readIncome(image=images[i], model=gpt)
+                    isPageInfo = readIncome(image=images[i], model=gpt, metadata = metadata)
                     incomestatement.update(isPageInfo)
             
             st.subheader("**Income Statement:**")
@@ -159,7 +160,7 @@ if st.button("Upload"):
                 cfPage = sections["Cash Flow Statement"]
                 cashflow = dict()
                 for i in range(cfPage[0], cfPage[1]+1):
-                    cfPageInfo = readCashFlow(image=images[i], model=gpt)
+                    cfPageInfo = readCashFlow(image=images[i], model=gpt, metadata = metadata)
                     cashflow.update(cfPageInfo)
             
             st.subheader("**Cash Flow Statement:**")

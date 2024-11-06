@@ -35,6 +35,34 @@ def get_dbconn():
 
 db, vectordb = get_dbconn()
 
+@st.dialog("Warning")
+def delete():
+    st.write(f"Are you sure you want to delete the selected records: {st.session_state.to_delete}")
+    col1, col2 = st.columns([1,1])
+
+    with col1:
+        delet = st.button('Delete')
+    with col2:
+        cance = st.button('Cancel')
+
+    if delet:
+        try:
+            for id in st.session_state.to_delete:
+                db.delete(table_name="INCOMESTATEMENT", conditions={'reportid': id})
+                db.delete(table_name="CASHFLOW", conditions={'reportid': id})
+                db.delete(table_name="BALANCESHEET", conditions={'reportid': id})
+                db.delete(table_name="METADATA", conditions={'reportid': id})
+            # Reset states after deletion
+            st.session_state.delete_triggered = False
+            st.session_state.to_delete = []
+            st.rerun()
+        except Exception as e:
+            st.error(e)
+    if cance:
+        st.session_state.delete_triggered = False
+        st.rerun()
+        
+
 def get_data(_db: Database):
     reports = _db.read("METADATA", "reportid, bankid, year, quarter")
     banks = _db.read("BANK", "bankid, bankname, abbreviation")
@@ -52,7 +80,14 @@ def get_data(_db: Database):
 
     return result_df
 
-df = get_data(_db = db)
+# Initialize session states for tracking deletions and confirmations
+if 'delete_triggered' not in st.session_state:
+    st.session_state.delete_triggered = False
+if 'to_delete' not in st.session_state:
+    st.session_state.to_delete = []
+
+# Load data
+df = get_data(_db=db)
 
 def display_crud():
     st.title("Data Manipulation")
@@ -66,6 +101,7 @@ def display_crud():
     header_cols[4].write("**Quarter**")
     header_cols[5].write("**Action**")  
 
+    # Clear selected records for deletion
     to_delete = []  
 
     for index, row in df.iterrows():
@@ -83,17 +119,21 @@ def display_crud():
 
         # Update button
         if cols[5].button("Update", key=f"update_{index}"):
-            st.session_state.selected_id = row['ID']  # Store ID for update
-            st.session_state.selected_name = row['Name']  # Store name for update
-            st.success(f"Ready to update {row['Name']}!")
+            st.session_state.selected_id = row['reportid']
+            st.session_state.selected_name = row['bankname']
+            st.success(f"Ready to update {row['bankname']}!")
 
+    # If the "Delete Selected" button is clicked, set confirmation trigger
     if st.button("Delete Selected"):
         if to_delete:
-            for id in to_delete:
-                st.success(f"Deleted record with ID: {id}!")
+            st.session_state.delete_triggered = True
+            st.session_state.to_delete = to_delete
         else:
             st.warning("No records selected for deletion.")
 
+    # Display confirmation dialog if delete_triggered is True
+    if st.session_state.delete_triggered:
+        delete()
 
 # Display the CRUD interface
 display_crud()
