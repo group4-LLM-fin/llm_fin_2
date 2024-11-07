@@ -53,7 +53,7 @@ def find_table(images):
             texts = text_splitter.split_text(text)
             explaination_part.append(texts)
     progress_bar.empty()
-    result_filled = pd.Series(result).map({1: 'balance sheet', 2: 'income statement', 3: 'cash flow', 4: 'thuyet minh'}).fillna('muc luc').tolist()
+    result_filled = pd.Series(result).map({1: 'balance sheet', 2: 'another', 3: 'income statement', 4: 'cash flow', 5: 'thuyet minh'}).fillna('muc luc').tolist()
 
     # Logging each section range for display
     sections = {
