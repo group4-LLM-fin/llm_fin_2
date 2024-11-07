@@ -6,7 +6,7 @@ import os
 import voyageai
 
 voyage_api = os.getenv('VOYAGE_API')
-vo = voyageai.Client(api_key=voyage_api)
+vo = voyageai.Client(api_key='pa-8VuCjYTvgxSqIw33ADELwZUxCyV3Cz7mBLVy9RovGrY')
 
 distance_dict = {
     'L2' : '<->',

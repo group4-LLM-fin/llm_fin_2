@@ -6,15 +6,18 @@ import pandas as pd
 import json
 import google.generativeai as genai
 import streamlit as st
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
 
 
 def find_table(images):
-
+    explaination_part = []
     signals = {
         1: ('balance sheet', ['tien mat', 'vang', 'da quy']),
-        2: ('income statement', ['thu nhap lai thuan', 'lai thuan','chi phi hoat dong', 'chi phi', 'tong loi nhuan']),
-        3: ('cash flow', ['luu chuyen tien']),
-        4: ('thuyet minh', ['don vi bao cao', 'dac diem hoat dong', 'thanh lap va hoat dong']),
+        2: ('another', ['chi tieu ngoai', 'hoat dong rieng', 'hoat dong kinh doanh rieng']),
+        3: ('income statement', ['thu nhap lai thuan']),
+        4: ('cash flow', ['luu chuyen tien']),
+        5: ('thuyet minh', ['don vi bao cao', 'dac diem hoat dong', 'thong tin ve ngan hang']),
     }
     metadata = ""
     result = [np.nan] * len(images)
@@ -38,51 +41,30 @@ def find_table(images):
                 result[i] = result[i-1] if i > 0 else np.nan
         else:
             result[i] = result[i-1] if i > 0 else np.nan
-        if k == 5:
-            for j in range(i+1,len(result)):
-                result[j] = 4
-            break
-        progress_bar.progress(i+1, 'Optical Character Recognizing...')
+        # if k == 6:
+        #     for j in range(i+1,len(result)):
+        #         result[j] = 5
+        #     break
+        # progress_bar.progress(i+1, 'Optical Character Recognizing...')
         
-        # if result[i] == 4:
-        #     first_half, second_half = split_text_by_sentences(text)
-        #     embedding1 = embedder.embed_documents(texts=first_half)
-        #     embedding1 = embedding1[0]
-        #     embedding2 = embedder.embed_documents(texts=second_half)
-        #     embedding2 = embedding2[0]
-        #     db.insert_embedding(
-        #         table_name="EXPLANATION",
-        #         bank = bank,
-        #         year = year,
-        #         quarter = quarter, 
-        #         text = first_half, 
-        #         page = i, 
-        #         part = 1, 
-        #         Embedding = embedding1
-        #     )
-        #     db.insert_embedding(
-        #         table_name="EXPLANATION",
-        #         bank = bank,
-        #         year = year,
-        #         quarter = quarter, 
-        #         text = second_half, 
-        #         page = i, 
-        #         part = 2, 
-        #         Embedding = embedding2
-        #     )
+        if result[i] == 5:
+            text = text.replace('.\n\n', '. ').replace('\n\n', '. ').replace('\n', ' ')
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=20)
+            texts = text_splitter.split_text(text)
+            explaination_part.append(texts)
     progress_bar.empty()
     result_filled = pd.Series(result).map({1: 'balance sheet', 2: 'income statement', 3: 'cash flow', 4: 'thuyet minh'}).fillna('muc luc').tolist()
 
     # Logging each section range for display
     sections = {
         "Catalouge": (0, result_filled.index('balance sheet') - 1),
-        "Balance Sheet": (result_filled.index('balance sheet'), result_filled.index('income statement') - 1),
+        "Balance Sheet": (result_filled.index('balance sheet'), result_filled.index('another') - 1),
         "Income Statement": (result_filled.index('income statement'), result_filled.index('cash flow') - 1),
         "Cash Flow Statement": (result_filled.index('cash flow'), result_filled.index('thuyet minh') - 1),
         "Explanation": (result_filled.index('thuyet minh'), len(result_filled) - 1)
     }
 
-    return sections, metadata
+    return sections, metadata, explaination_part
 
 def split_text_by_sentences(text):
     sentences = text.split('. ')

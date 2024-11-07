@@ -53,7 +53,7 @@ def get_dbconn():
         'user': user,
         'password': password,
         'host': host,
-        'port': port,
+        'port': 5432,
         'dbname': dbname
     }
 
@@ -100,7 +100,7 @@ if st.button("Upload"):
         progress_bar.empty()
 
         with st.spinner(text="Analyzing file..."):
-            sections, metadata_text = find_table(images)
+            sections, metadata_text, explaination_part = find_table(images)
             sections_df = pd.DataFrame.from_dict(sections, orient='index', columns=['Start Page', 'End Page'])
             sections_df['Start Page'] += 1
             sections_df['End Page'] += 1
