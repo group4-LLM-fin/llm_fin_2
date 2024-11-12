@@ -9,25 +9,25 @@ import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 
-
 def find_table(images):
     explaination_part = []
+    balance_sheet = []
     signals = {
         1: ('balance sheet', ['tien mat', 'vang', 'da quy']),
-        2: ('another', ['chi tieu ngoai', 'hoat dong rieng', 'hoat dong kinh doanh rieng']),
-        3: ('income statement', ['thu nhap lai thuan']),
-        4: ('cash flow', ['luu chuyen tien']),
-        5: ('thuyet minh', ['don vi bao cao', 'dac diem hoat dong', 'thong tin ve ngan hang']),
+        2: ('income statement', ['thu nhap lai thuan']),
+        3: ('cash flow', ['luu chuyen tien']),
+        4: ('thuyet minh', ['don vi bao cao', 'dac diem hoat dong', 'thong tin ve ngan hang']),
     }
     metadata = ""
     result = [np.nan] * len(images)
     k = 1
     progress_bar = st.progress(0, text='Optical Character Recognizing...')
-    for i, image in enumerate(images): 
+    for i, image in enumerate(images):
 
-        text = pytesseract.image_to_string(image, lang='vie')  # Pass PIL image to pytesseract
+        text = pytesseract.image_to_string(
+            image, lang='vie')  # Pass PIL image to pytesseract
         test_text = unidecode(text.lower())
-        
+
         if i < 3:
             metadata += text
             metadata += " "
@@ -46,34 +46,54 @@ def find_table(images):
         #         result[j] = 5
         #     break
         # progress_bar.progress(i+1, 'Optical Character Recognizing...')
-        
-        if result[i] == 5:
-            text = text.replace('.\n\n', '. ').replace('\n\n', '. ').replace('\n', ' ')
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=20)
-            texts = text_splitter.split_text(text)
-            explaination_part.append(texts)
-    progress_bar.empty()
-    result_filled = pd.Series(result).map({1: 'balance sheet', 2: 'another', 3: 'income statement', 4: 'cash flow', 5: 'thuyet minh'}).fillna('muc luc').tolist()
 
-    # Logging each section range for display
-    sections = {
-        "Catalouge": (0, result_filled.index('balance sheet') - 1),
-        "Balance Sheet": (result_filled.index('balance sheet'), result_filled.index('another') - 1),
-        "Income Statement": (result_filled.index('income statement'), result_filled.index('cash flow') - 1),
-        "Cash Flow Statement": (result_filled.index('cash flow'), result_filled.index('thuyet minh') - 1),
-        "Explanation": (result_filled.index('thuyet minh'), len(result_filled) - 1)
-    }
+        if result[i] == 4:
+            chunked_text = chunking(text)
+            explaination_part.append(chunked_text)
+
+    progress_bar.empty()
+
+    result_filled = (
+        pd.Series(result)
+        .map({1: 'balance sheet', 2: 'income statement', 3: 'cash flow', 4: 'thuyet minh'})
+        .fillna('muc luc')
+        .tolist()
+    )
+
+    last_balance_text = unidecode(balance_sheet[-1].lower())
+    if any(keyword in last_balance_text for keyword in ['chi tieu ngoai', 'hoat dong rieng', 'hoat dong kinh doanh rieng']):
+        result_filled[result_filled.index('income statement') - 1] = 'another'
+
+    if 'another' in result_filled:
+        sections = {
+            "Catalouge": (0, result_filled.index('balance sheet') - 1),
+            "Balance Sheet": (result_filled.index('balance sheet'), result_filled.index('another') - 1),
+            "Income Statement": (result_filled.index('income statement'), result_filled.index('cash flow') - 1),
+            "Cash Flow Statement": (result_filled.index('cash flow'), result_filled.index('thuyet minh') - 1),
+            "Explanation": (result_filled.index('thuyet minh'), len(result_filled) - 1)
+        }
+    else:
+        sections = {
+            "Catalouge": (0, result_filled.index('balance sheet') - 1),
+            "Balance Sheet": (result_filled.index('balance sheet'), result_filled.index('income statement') - 1),
+            "Income Statement": (result_filled.index('income statement'), result_filled.index('cash flow') - 1),
+            "Cash Flow Statement": (result_filled.index('cash flow'), result_filled.index('thuyet minh') - 1),
+            "Explanation": (result_filled.index('thuyet minh'), len(result_filled) - 1)
+        }
 
     return sections, metadata, explaination_part
 
-def split_text_by_sentences(text):
-    sentences = text.split('. ')
-    midpoint = len(sentences) // 2
-    first_half = '. '.join(sentences[:midpoint]) + '.'
-    second_half = '. '.join(sentences[midpoint:])
-    return first_half, second_half
 
-def get_metadata(extracted_text, model:genai.GenerativeModel):
+def chunking(text):
+    text = text = text.replace('.\n\n', '. ').replace(
+        '\n\n', '. ').replace('\n', ' ')
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=2000, chunk_overlap=20)
+    texts = text_splitter.split_text(text)
+    return texts
+
+
+def get_metadata(extracted_text, model: genai.GenerativeModel):
 
     response = model.generate_content(["""
         Đây là báo cáo tài chính của ngân hàng nào:
@@ -87,9 +107,9 @@ def get_metadata(extracted_text, model:genai.GenerativeModel):
             "bankid": 01203001}
         Thông tin ngân hàng cần phân tích:
         """ + extracted_text])
-    
-    metadata = response.text.replace("json","")
-    metadata = metadata.replace("```","")
+
+    metadata = response.text.replace("json", "")
+    metadata = metadata.replace("```", "")
     metadata = json.loads(metadata)
 
     return metadata
