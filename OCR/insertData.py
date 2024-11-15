@@ -3,6 +3,7 @@ from database.vectorDB import VectorDB
 import os
 from dotenv import load_dotenv
 import uuid
+import concurrent.futures
 
 def insert_metadata(metadata, db: Database):
     db.insert("METADATA", **metadata)
@@ -132,9 +133,15 @@ def insert_chunk():
 
 def insert_all(metadata, bs: str|dict, ics: str|dict, cf: str|dict , vectordb: VectorDB, db: Database):
     insert_metadata(metadata, db)
-    insert_balancesheet(metadata, bs, vectordb, db)
-    insert_income(metadata, ics, vectordb, db)
-    insert_cashflow(metadata, cf, vectordb, db)
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        balancesheet_future = executor.submit(insert_balancesheet, metadata, bs, vectordb, db)
+        income_future = executor.submit(insert_income, metadata, ics, vectordb, db)
+        cashflow_future = executor.submit(insert_cashflow, metadata, cf, vectordb, db)
+        
+        balancesheet_future.result() 
+        income_future.result()
+        cashflow_future.result()
+
 
 if __name__ == '__main__':
     metadata = {

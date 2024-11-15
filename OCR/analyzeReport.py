@@ -1,5 +1,4 @@
 import numpy as np
-from PIL import Image
 import pytesseract
 from unidecode import unidecode
 import pandas as pd
@@ -41,17 +40,18 @@ def find_table(images):
                 result[i] = result[i-1] if i > 0 else np.nan
         else:
             result[i] = result[i-1] if i > 0 else np.nan
-        # if k == 6:
-        #     for j in range(i+1,len(result)):
-        #         result[j] = 5
-        #     break
-        # progress_bar.progress(i+1, 'Optical Character Recognizing...')
+        print(result)
+        if k == 6:
+            for j in range(i+1,len(result)):
+                result[j] = 5
+            break
+        progress_bar.progress(i+1, 'Optical Character Recognizing...')
         
-        if result[i] == 5:
-            text = text.replace('.\n\n', '. ').replace('\n\n', '. ').replace('\n', ' ')
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=20)
-            texts = text_splitter.split_text(text)
-            explaination_part.append(texts)
+        # if result[i] == 5:
+        #     text = text.replace('.\n\n', '. ').replace('\n\n', '. ').replace('\n', ' ')
+        #     text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=20)
+        #     texts = text_splitter.split_text(text)
+        #     explaination_part.append(texts)
     progress_bar.empty()
     result_filled = pd.Series(result).map({1: 'balance sheet', 2: 'another', 3: 'income statement', 4: 'cash flow', 5: 'thuyet minh'}).fillna('muc luc').tolist()
 
