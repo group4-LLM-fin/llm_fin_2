@@ -48,13 +48,12 @@ def get_dbconn():
     port = os.getenv('PORT')
     password = os.getenv('PASSWORD')
     dbname = os.getenv('DB1')
-    port = os.getenv('PORT')
 
     db_config = {
         'user': user,
         'password': password,
         'host': host,
-        'port': 5432,
+        'port': port,
         'dbname': dbname
     }
 

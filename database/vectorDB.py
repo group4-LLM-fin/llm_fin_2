@@ -27,7 +27,7 @@ class VectorDB:
             user=kwargs.get("user"),
             password=kwargs.get("password")
         )
-
+        print(kwargs.get("user"),kwargs.get("dbname"))
         self.cursor = self.connection.cursor()
         openai_api = kwargs.get("openai_api_key")
         self.client = OpenAI(api_key=openai_api)
