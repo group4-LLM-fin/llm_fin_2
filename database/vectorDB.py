@@ -19,7 +19,6 @@ distance_dict = {
 
 class VectorDB:
     def __init__(self, **kwargs):
-        print(kwargs.get("user"),kwargs.get("dbname"))
 
         # Initialize PostgreSQL connection with kwargs
         self.connection = psycopg2.connect(
