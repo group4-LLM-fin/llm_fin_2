@@ -93,14 +93,14 @@ if st.button("Upload"):
 
         for page_num in range(len(pdf_document)):
             page = pdf_document[page_num]
-            pix = page.get_pixmap(dpi=200)  # Set the DPI for better quality
+            pix = page.get_pixmap(dpi=150)  # Set the DPI for better quality
             image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
             images.append(image)  
             progress_bar.progress(page_num+1, "Scanning file...")
         progress_bar.empty()
 
         with st.spinner(text="Analyzing file..."):
-            sections, metadata_text, explaination_part = find_table(images)
+            sections, metadata_text, explaination_part, images = find_table(images)
             sections_df = pd.DataFrame.from_dict(sections, orient='index', columns=['Start Page', 'End Page'])
             sections_df['Start Page'] += 1
             sections_df['End Page'] += 1
