@@ -3,9 +3,12 @@ import openai
 import streamlit as st
 from openai import OpenAI
 from dotenv import load_dotenv
+from sqlalchemy.engine import URL
 import google.generativeai as genai
 from logicRAG.routing import routing
+from sqlalchemy import create_engine, inspect
 from logicRAG.stream_output import responseGenerate
+from langchain_community.utilities import SQLDatabase
 from langchain.memory import ConversationBufferMemory
 
 load_dotenv(override=True)
@@ -17,14 +20,52 @@ st.set_page_config(
 st.logo('graphics/logo.png')
 
 @st.cache_resource
-def connectapi():
+def initializing():
     openai.api_key = os.getenv("OPENAI_API_KEY")
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
     gpt = OpenAI()
     gemini = genai.GenerativeModel("gemini-1.5-flash")
 
-    return gpt, gemini
-gpt, gemini = connectapi()
+    #  SQL connection
+    user = os.getenv('USER')
+    host = os.getenv('HOST')
+    port = os.getenv('PORT')
+    password = os.getenv('PASSWORD')
+    dbname = os.getenv('DB1')
+    sqlalchemy_connection_url = URL.create(
+    "postgresql+psycopg2",
+    username=user,
+    password=password,
+    host=host,
+    port=port,
+    database=dbname,
+    )
+    sql_engine = create_engine(sqlalchemy_connection_url)
+    inspector = inspect(sql_engine)
+    sql_database = SQLDatabase(engine=sql_engine)
+    return gpt, gemini, inspector, sql_engine, sql_database
+
+@st.cache_data
+def getDatabaseInfo():
+    db_structure = {
+    'tables': inspector.get_table_names(),
+    }
+    db_structure.update({
+        table: {
+            'columns': [{'name': column['name'], 'type': str(column['type'])} for column in inspector.get_columns(table)]
+        } for table in db_structure['tables']
+    })
+    
+    acc_name_query = """
+        SELECT accname
+        FROM "ACCNO"
+        """
+    acc_name = sql_database.run(acc_name_query)
+    
+    return db_structure, acc_name
+
+gpt, gemini, inspector, sql_engine, sql_database = initializing()
+db_structure, acc_name = getDatabaseInfo()
 
 with st.chat_message(avatar="graphics/ico.jpg", name="system"):
     st.markdown("© 2024 Grp4ML1 - DSEB64A. All rights reserved.")
@@ -64,8 +105,12 @@ if input_text:
     st.session_state.memory.chat_memory.add_message({"role": "user", "content": input_text})
 
     # Routing
-    
-    
+    route = routing(history = st.session_state.memory.load_memory_variables({}), 
+                    llm=gpt, model='gpt-4o-mini',
+                    sql_engine=sql_engine, acc_name=acc_name,
+                    db_structure=db_structure
+                    )
+
     response_generator = responseGenerate(llm=gpt, memory_variables= st.session_state.memory.load_memory_variables({}), model = 'gpt-4o-mini')
 
     chat_response = streamResponse(response_generator)

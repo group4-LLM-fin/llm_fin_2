@@ -83,7 +83,6 @@ class Quest2SQL:
             # Execute the SQL query and retrieve the result
             query_tool = QuerySQLDataBaseTool(db=self.sql_database)
             sql_result = query_tool.run(sql_query)
-
             # # Format the prompt to generate the final answer
             # answer_prompt = PromptTemplate.from_template(system_role)
             # answer_chain = answer_prompt | self.llm | StrOutputParser()

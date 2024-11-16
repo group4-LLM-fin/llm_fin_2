@@ -6,7 +6,7 @@ import google.generativeai as genai
 
 load_dotenv()
 
-def responseGenerate(llm:OpenAI|genai.GenerativeModel, memory_variables, model = 'gemini-1.5-flash'):
+def responseGenerate(llm:OpenAI|genai.GenerativeModel, memory_variables:dict, model = 'gemini-1.5-flash'):
     history = memory_variables.get("chat_history", [])
     response = getStreamResponse(llm=llm,model=model, history=history)
     
