@@ -1,0 +1,111 @@
+###Example about the bank with highest ROE in 2024 quarter 2
+SELECT 
+    "BANK"."bankname", 
+    ("INCOMESTATEMENT"."amount" / NULLIF("BALANCESHEET"."amount", 0)) * 100 AS "ROE"
+FROM 
+    "METADATA"
+JOIN 
+    "BANK" ON "METADATA"."bankid" = "BANK"."bankid"
+JOIN 
+    "INCOMESTATEMENT" ON "METADATA"."reportid" = "INCOMESTATEMENT"."reportid"
+JOIN 
+    "BALANCESHEET" ON "METADATA"."reportid" = "BALANCESHEET"."reportid"
+WHERE 
+    "METADATA"."year" = 2024 
+    AND "METADATA"."quarter" = 2 
+    AND "INCOMESTATEMENT"."accountname" = 'Profit after tax'
+    AND "BALANCESHEET"."accountname" = 'Total equity'
+ORDER BY 
+    "ROE" DESC
+LIMIT 1;
+
+###Example about the bank with highest ROA in 2024 quarter 2
+SELECT 
+    "BANK"."bankname", 
+    ("INCOMESTATEMENT"."amount" / NULLIF("BALANCESHEET"."amount", 0)) * 100 AS "ROA"
+FROM 
+    "METADATA"
+JOIN 
+    "BANK" ON "METADATA"."bankid" = "BANK"."bankid"
+JOIN 
+    "INCOMESTATEMENT" ON "METADATA"."reportid" = "INCOMESTATEMENT"."reportid"
+JOIN 
+    "BALANCESHEET" ON "METADATA"."reportid" = "BALANCESHEET"."reportid"
+WHERE 
+    "METADATA"."year" = 2024 
+    AND "METADATA"."quarter" = 2 
+    AND "INCOMESTATEMENT"."accountname" = 'Profit after tax'
+    AND "BALANCESHEET"."accountname" = 'Total assets'
+ORDER BY 
+    "ROA" DESC
+LIMIT 1;
+
+###Example about the bank with highest Loan to deposit in 2024 quarter 2:
+SELECT 
+    "BANK"."bankname", 
+    ("BALANCESHEET_1"."amount" / 
+     (NULLIF("BALANCESHEET_2"."amount", 0) + 
+      NULLIF("BALANCESHEET_3"."amount", 0)) * 100) AS "Loan-to-Deposit Ratio"
+FROM 
+    "METADATA"
+JOIN 
+    "BANK" ON "METADATA"."bankid" = "BANK"."bankid"
+JOIN 
+    "BALANCESHEET" AS "BALANCESHEET_1" ON "METADATA"."reportid" = "BALANCESHEET_1"."reportid" AND "BALANCESHEET_1"."accountno" = '21'
+JOIN 
+    "BALANCESHEET" AS "BALANCESHEET_2" ON "METADATA"."reportid" = "BALANCESHEET_2"."reportid" AND "BALANCESHEET_2"."accountno" = '42'
+JOIN 
+    "BALANCESHEET" AS "BALANCESHEET_3" ON "METADATA"."reportid" = "BALANCESHEET_3"."reportid" AND "BALANCESHEET_3"."accountno" = '43'
+WHERE 
+    "METADATA"."year" = 2024 
+    AND "METADATA"."quarter" = 2
+ORDER BY 
+    "Loan-to-Deposit Ratio" DESC
+LIMIT 1;
+
+### NIM 
+SELECT 
+    "BANK"."bankname", 
+    (("INCOMESTATEMENT_1"."amount") / NULLIF(SUM("BALANCESHEET"."amount"), 0)) * 100 AS "NIM"
+FROM 
+    "METADATA"
+JOIN 
+    "BANK" ON "METADATA"."bankid" = "BANK"."bankid"
+JOIN 
+    "INCOMESTATEMENT" AS "INCOMESTATEMENT_1" 
+    ON "METADATA"."reportid" = "INCOMESTATEMENT_1"."reportid" 
+    AND "INCOMESTATEMENT_1"."accountno" = '75'
+JOIN 
+    "BALANCESHEET" 
+    ON "METADATA"."reportid" = "BALANCESHEET"."reportid" 
+    AND "BALANCESHEET"."accountno" BETWEEN 13 AND 21
+WHERE 
+    "METADATA"."year" = 2024 
+    AND "METADATA"."quarter" = 2
+GROUP BY 
+    "BANK"."bankname", "INCOMESTATEMENT_1"."amount"
+ORDER BY 
+    "NIM" DESC
+LIMIT 1;
+
+### CASA
+### LLC
+### NPL
+
+#Cau truc tai chinh
+## Cơ cấu biến động nguồn vốn
+### Quy mô và tốc độ tăng trưởng nguồn vốn, đặc biệt là tiền gửi tanh toán, tiền gửi tiết kiệm và tiền vay
+#### Quy mo nguon von
+
+#### Toc do tang truong
+
+### cơ cấu nguồn vốn, nhóm nguồn và sự thay đổi cơ cấu
+
+## Cơ cấu biến động tài sản
+
+### Phân tích hoạt động tín dụng
+
+
+## Moi lien he tai san va nguon von
+## Hieu qua kinh doanh va kha nang sinh loi
+## Rui ro hoat dong
