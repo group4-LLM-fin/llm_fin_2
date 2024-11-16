@@ -8,7 +8,7 @@ st.set_page_config(
 )
 st.logo('graphics/logo.png')
 
-with st.chat_message(avatar=r"graphics\ico.jpg", name="system"):
+with st.chat_message(avatar="graphics/ico.jpg", name="system"):
     st.markdown("© 2024 Group 4 - DSEB64A. All rights reserved.")
 
 if 'memory' not in st.session_state:
