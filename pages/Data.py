@@ -5,7 +5,7 @@ from database.vectorDB import VectorDB
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 st.set_page_config(
     page_title="Chatbot",

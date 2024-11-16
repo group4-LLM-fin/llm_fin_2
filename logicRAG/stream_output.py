@@ -1,13 +1,14 @@
 from utils.ModelAPI import getStreamResponse
 from dotenv import load_dotenv
 from utils.MessageGeminiFormat import transform_response_for_gemini
+from openai import OpenAI
+import google.generativeai as genai
 
 load_dotenv()
 
-def responseGenerate(memory_variables, model = 'gemini-1.5-flash'):
-    # Append the new user message to the chat history
+def responseGenerate(llm:OpenAI|genai.GenerativeModel, memory_variables, model = 'gemini-1.5-flash'):
     history = memory_variables.get("chat_history", [])
-    response = getStreamResponse(model=model, history=history)
+    response = getStreamResponse(llm=llm,model=model, history=history)
     
     if 'gpt' in model:
         for chunk in response:
