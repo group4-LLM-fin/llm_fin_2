@@ -5,7 +5,7 @@ from database.vectorDB import VectorDB
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 st.set_page_config(
     page_title="Chatbot",
@@ -19,7 +19,6 @@ def get_dbconn():
     port = os.getenv('PORT')
     password = os.getenv('PASSWORD')
     dbname = os.getenv('DB1')
-    port = os.getenv('PORT')
 
     db_config = {
         'user': user,

@@ -9,18 +9,19 @@ import voyageai
 from OCR.analyzeReport import find_table, get_metadata
 import pandas as pd
 import google.generativeai as genai
-from OCR.readReport import readBalanceSheet, readIncome, readCashFlow
 from openai import OpenAI
 import fitz
 from PIL import Image
 from OCR.insertData import insert_all
+from utils.pallelize_reading import *
+import concurrent.futures
 
-load_dotenv()
+load_dotenv(override=True)
 
 st.set_page_config(
     page_title="Chatbot",
     page_icon="graphics/anya_logo.png" 
-)
+)   
 
 @st.cache_resource
 def get_env():
@@ -31,10 +32,10 @@ def get_env():
     pytesseract.pytesseract.tesseract_cmd = r'Tesseract-OCR\tesseract.exe'
     openai_api = os.getenv('OPENAI_API_KEY')
     voyage_api = os.getenv('VOYAGE_API')
-
+    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+    
     OpenAIembedder = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=openai_api)
     VoyageEmbedder = voyageai.Client(api_key=voyage_api)
-    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
     gemini = genai.GenerativeModel("gemini-1.5-pro")
     gpt = OpenAI(api_key=openai_api)
 
@@ -47,13 +48,12 @@ def get_dbconn():
     port = os.getenv('PORT')
     password = os.getenv('PASSWORD')
     dbname = os.getenv('DB1')
-    port = os.getenv('PORT')
 
     db_config = {
         'user': user,
         'password': password,
         'host': host,
-        'port': 5432,
+        'port': port,
         'dbname': dbname
     }
 
@@ -77,7 +77,7 @@ col1, col2 = st.columns([1, 3])
 
 # Title in the first column
 with col1:
-    st.image("graphics\logo.png", use_column_width=True)
+    st.image(r"graphics/logo.png", use_container_width=True)
 
 with col2:
     st.markdown("<h1 style='text-align: left;'>Upload Bank Financial Reports</h1>", unsafe_allow_html=True)
@@ -130,39 +130,27 @@ if st.button("Upload"):
             st.subheader("**Report data:**")
             st.table(metadata_df)
 
+        # Run each section in parallel
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            tab2_future = executor.submit(process_balancesheet, images, sections["Balance Sheet"], gpt, metadata)
+            tab3_future = executor.submit(process_incomestatement, images, sections["Income Statement"], gpt, metadata)
+            tab4_future = executor.submit(process_cashflow, images, sections["Cash Flow Statement"], gpt, metadata)
+
         with tab2:
-            # Analyze Balancesheet
             with st.spinner('Read Balance Sheet...'):
-                balancesheetPage = sections["Balance Sheet"]
-                balancesheet = dict()
-                for i in range(balancesheetPage[0], balancesheetPage[1]+1):
-                    balancesheetPageInfo = readBalanceSheet(image=images[i], model=gpt, metadata = metadata)
-                    balancesheet.update(balancesheetPageInfo)
-            
-            st.subheader("**Balance sheet:**")
+                balancesheet = tab2_future.result()
+            st.subheader("**Balance Sheet:**")
             st.table(balancesheet)
 
-        # Analyze Income statement
         with tab3:
             with st.spinner('Read Income Statement...'):
-                isPage = sections["Income Statement"]
-                incomestatement = dict()
-                for i in range(isPage[0], isPage[1]+1):
-                    isPageInfo = readIncome(image=images[i], model=gpt, metadata = metadata)
-                    incomestatement.update(isPageInfo)
-            
+                incomestatement = tab3_future.result()
             st.subheader("**Income Statement:**")
             st.table(incomestatement)
 
-        # Analyze Cash Flow Statement
         with tab4:
             with st.spinner('Read Cash Flow Statement...'):
-                cfPage = sections["Cash Flow Statement"]
-                cashflow = dict()
-                for i in range(cfPage[0], cfPage[1]+1):
-                    cfPageInfo = readCashFlow(image=images[i], model=gpt, metadata = metadata)
-                    cashflow.update(cfPageInfo)
-            
+                cashflow = tab4_future.result()
             st.subheader("**Cash Flow Statement:**")
             st.table(cashflow)
         

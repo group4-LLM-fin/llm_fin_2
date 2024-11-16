@@ -1,5 +1,4 @@
 import numpy as np
-from PIL import Image
 import pytesseract
 from unidecode import unidecode
 import pandas as pd
@@ -41,6 +40,7 @@ def find_table(images):
                 result[i] = result[i-1] if i > 0 else np.nan
         else:
             result[i] = result[i-1] if i > 0 else np.nan
+<<<<<<< HEAD
 
         if result[i] == 1:
             if any(keyword in test_text for keyword in ['chi tieu ngoai', 'hoat dong rieng', 'hoat dong kinh doanh rieng']) and any(keyword in test_text for keyword in ['tong no', 'von chu so huu']):
@@ -49,10 +49,26 @@ def find_table(images):
                 pass
             elif any(keyword in test_text for keyword in ['chi tieu ngoai', 'hoat dong rieng', 'hoat dong kinh doanh rieng']):
                 result[i] = 5
+=======
+        print(result)
+        if k == 6:
+            for j in range(i+1,len(result)):
+                result[j] = 5
+            break
+        progress_bar.progress(i+1, 'Optical Character Recognizing...')
+        
+        # if result[i] == 5:
+        #     text = text.replace('.\n\n', '. ').replace('\n\n', '. ').replace('\n', ' ')
+        #     text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=20)
+        #     texts = text_splitter.split_text(text)
+        #     explaination_part.append(texts)
+    progress_bar.empty()
+    result_filled = pd.Series(result).map({1: 'balance sheet', 2: 'another', 3: 'income statement', 4: 'cash flow', 5: 'thuyet minh'}).fillna('muc luc').tolist()
+>>>>>>> 9817b976d05d74df0430540532cb2129fa108ce8
 
-        if result[i] == 4:
-            chunked_text = chunking(text)
-            explaination_part.append(chunked_text)
+    if result[i] == 4:
+        chunked_text = chunking(text)
+        explaination_part.append(chunked_text)
 
     progress_bar.empty()
 

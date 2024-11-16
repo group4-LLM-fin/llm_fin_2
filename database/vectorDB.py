@@ -19,6 +19,7 @@ distance_dict = {
 
 class VectorDB:
     def __init__(self, **kwargs):
+
         # Initialize PostgreSQL connection with kwargs
         self.connection = psycopg2.connect(
             host=kwargs.get("host"),
@@ -27,7 +28,6 @@ class VectorDB:
             user=kwargs.get("user"),
             password=kwargs.get("password")
         )
-
         self.cursor = self.connection.cursor()
         openai_api = kwargs.get("openai_api_key")
         self.client = OpenAI(api_key=openai_api)

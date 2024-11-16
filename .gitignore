@@ -2,3 +2,8 @@
 .env
 unitTest.ipynb
 data/
+Untitled-1.ipynb
+*.pdf
+**/__pycache__/
+*.pyc
+**/*.pyc
