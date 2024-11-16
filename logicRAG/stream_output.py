@@ -11,8 +11,8 @@ def responseGenerate(memory_variables, model = 'gemini-1.5-flash'):
     
     if 'gpt' in model:
         for chunk in response:
-            chunk_message = chunk['choices'][0]['delta'].get('content', '')
-            yield chunk_message
+            chunk_message = chunk.choices[0].delta.content
+            yield str(chunk_message) if chunk_message else ""
 
     elif 'gemini' in model:
         for chunk in response:
