@@ -6,16 +6,17 @@ import json
 import google.generativeai as genai
 import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+import cv2
+from PIL import Image
 
 
 def find_table(images):
     explaination_part = []
-    balance_sheet = []
     signals = {
         1: ('balance sheet', ['tien mat', 'vang', 'da quy']),
-        2: ('income statement', ['thu nhap lai thuan']),
+        2: ('income statement', ['thu nhap lai thuan', 'thu nhap thuan', 'thu nhap lai']),
         3: ('cash flow', ['luu chuyen tien']),
-        4: ('thuyet minh', ['don vi bao cao', 'dac diem hoat dong', 'thong tin ve ngan hang']),
+        4: ('thuyet minh', ['don vi bao cao', 'dac diem hoat dong', 'thong tin ve ngan hang', 'thong tin ngan hang']),
     }
     metadata = ""
     result = [np.nan] * len(images)
@@ -40,20 +41,14 @@ def find_table(images):
                 result[i] = result[i-1] if i > 0 else np.nan
         else:
             result[i] = result[i-1] if i > 0 else np.nan
-        print(result)
-        if k == 6:
-            for j in range(i+1,len(result)):
-                result[j] = 5
-            break
-        progress_bar.progress(i+1, 'Optical Character Recognizing...')
-        
-        # if result[i] == 5:
-        #     text = text.replace('.\n\n', '. ').replace('\n\n', '. ').replace('\n', ' ')
-        #     text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=20)
-        #     texts = text_splitter.split_text(text)
-        #     explaination_part.append(texts)
-    progress_bar.empty()
-    result_filled = pd.Series(result).map({1: 'balance sheet', 2: 'another', 3: 'income statement', 4: 'cash flow', 5: 'thuyet minh'}).fillna('muc luc').tolist()
+
+        if result[i] == 1:
+            if any(keyword in test_text for keyword in ['chi tieu ngoai', 'hoat dong rieng', 'hoat dong kinh doanh rieng']) and any(keyword in test_text for keyword in ['tong no', 'von chu so huu']):
+                print(i)
+                images[i] = split_img(image)
+                pass
+            elif any(keyword in test_text for keyword in ['chi tieu ngoai', 'hoat dong rieng', 'hoat dong kinh doanh rieng']):
+                result[i] = 5
 
     if result[i] == 4:
         chunked_text = chunking(text)
@@ -63,14 +58,10 @@ def find_table(images):
 
     result_filled = (
         pd.Series(result)
-        .map({1: 'balance sheet', 2: 'income statement', 3: 'cash flow', 4: 'thuyet minh'})
+        .map({1: 'balance sheet', 2: 'income statement', 3: 'cash flow', 4: 'thuyet minh', 5: 'another'})
         .fillna('muc luc')
         .tolist()
     )
-
-    last_balance_text = unidecode(balance_sheet[-1].lower())
-    if any(keyword in last_balance_text for keyword in ['chi tieu ngoai', 'hoat dong rieng', 'hoat dong kinh doanh rieng']):
-        result_filled[result_filled.index('income statement') - 1] = 'another'
 
     if 'another' in result_filled:
         sections = {
@@ -89,7 +80,35 @@ def find_table(images):
             "Explanation": (result_filled.index('thuyet minh'), len(result_filled) - 1)
         }
 
-    return sections, metadata, explaination_part
+    return sections, metadata, explaination_part, images
+
+
+def split_img(img):
+    keywords = ['ngoai', 'bang', 'can', 'doi', 'toan']
+
+    img = np.array(img)  # Convert PIL Image to NumPy array
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    text_data = pytesseract.image_to_data(
+        gray, output_type=pytesseract.Output.DICT)
+
+    # Normalize text to lowercase and remove diacritics
+    text_data['text'] = [unidecode(text.lower()) for text in text_data['text']]
+
+    y_coord = None
+
+    for i, word in enumerate(text_data['text']):
+        for keyword in keywords:
+            if keyword in word:
+                y_coord = text_data['top'][i]
+                break
+        if y_coord is not None:
+            break
+
+    if y_coord is not None:
+        cropped_img = img[:y_coord, :]
+        return Image.fromarray(cropped_img)
+    else:
+        return None
 
 
 def chunking(text):
