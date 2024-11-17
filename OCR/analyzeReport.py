@@ -7,6 +7,7 @@ import google.generativeai as genai
 import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import cv2
+from PIL import Image
 
 
 def find_table(images):
