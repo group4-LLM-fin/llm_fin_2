@@ -7,9 +7,11 @@ import google.generativeai as genai
 import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from PIL import Image
-
+import os
 
 def find_table(images):
+    os.system("mkdir -p /usr/share/tesseract-ocr/4.00/tessdata")
+    os.system("cp ./tessdata/vie.traineddata /usr/share/tesseract-ocr/4.00/tessdata/")
     pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
     explaination_part = []
     signals = {
