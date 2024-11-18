@@ -44,7 +44,6 @@ def find_table(images):
 
         if result[i] == 1:
             if any(keyword in test_text for keyword in ['chi tieu ngoai', 'hoat dong rieng', 'hoat dong kinh doanh rieng']) and any(keyword in test_text for keyword in ['tong no', 'von chu so huu']):
-                print(i)
                 images[i] = split_img(image)
                 pass
             elif any(keyword in test_text for keyword in ['chi tieu ngoai', 'hoat dong rieng', 'hoat dong kinh doanh rieng']):

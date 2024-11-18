@@ -105,11 +105,11 @@ if input_text:
     st.session_state.memory.chat_memory.add_message({"role": "user", "content": input_text})
 
     # Routing
-    route = routing(history = st.session_state.memory.load_memory_variables({}), 
-                    llm=gpt, model='gpt-4o-mini',
-                    sql_engine=sql_engine, acc_name=acc_name,
-                    db_structure=db_structure
-                    )
+    # route = routing(history = st.session_state.memory.load_memory_variables({}), 
+    #                 llm=gpt, model='gpt-4o-mini',
+    #                 sql_engine=sql_engine, acc_name=acc_name,
+    #                 db_structure=db_structure
+    #                 )
 
     response_generator = responseGenerate(llm=gpt, memory_variables= st.session_state.memory.load_memory_variables({}), model = 'gpt-4o-mini')
 
