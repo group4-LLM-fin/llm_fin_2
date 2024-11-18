@@ -34,7 +34,11 @@ def find_table(images):
         if i < 3:
             metadata += text
             metadata += " "
-
+        
+        if k==5:
+            result[i:] = [4]*(len(result)-i)
+            break
+        
         if k in signals:
             label, current_signals = signals[k]
             if any(signal in test_text for signal in current_signals):
@@ -55,10 +59,11 @@ def find_table(images):
         progress_bar.progress(i+1, text='Optical Character Recognizing')
         
 
-    if result[i] == 4:
-        chunked_text = chunking(text)
-        explaination_part.append(chunked_text)
+    # if result[i] == 4:
+    #     chunked_text = chunking(text)
+    #     explaination_part.append(chunked_text)
 
+    
     progress_bar.empty()
 
     result_filled = (
