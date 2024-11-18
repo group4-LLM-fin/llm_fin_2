@@ -123,7 +123,8 @@ def display_crud():
             st.success(f"Ready to update {row['bankname']}!")
 
     # If the "Delete Selected" button is clicked, set confirmation trigger
-    if st.button("Delete Selected"):
+    del_butt = st.button("Delete Selected", disabled=True)
+    if del_butt:
         if to_delete:
             st.session_state.delete_triggered = True
             st.session_state.to_delete = to_delete
