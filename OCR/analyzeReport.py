@@ -6,7 +6,6 @@ import json
 import google.generativeai as genai
 import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-import cv2
 from PIL import Image
 
 
@@ -48,6 +47,9 @@ def find_table(images):
                 pass
             elif any(keyword in test_text for keyword in ['chi tieu ngoai', 'hoat dong rieng', 'hoat dong kinh doanh rieng']):
                 result[i] = 5
+        
+        progress_bar.progress(i+1, text='Optical Character Recognizing')
+        
 
     if result[i] == 4:
         chunked_text = chunking(text)
@@ -85,10 +87,9 @@ def find_table(images):
 def split_img(img):
     keywords = ['ngoai', 'bang', 'can', 'doi', 'toan']
 
-    img = np.array(img)  # Convert PIL Image to NumPy array
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img = np.array(img) 
     text_data = pytesseract.image_to_data(
-        gray, output_type=pytesseract.Output.DICT)
+        img, output_type=pytesseract.Output.DICT)
 
     # Normalize text to lowercase and remove diacritics
     text_data['text'] = [unidecode(text.lower()) for text in text_data['text']]
