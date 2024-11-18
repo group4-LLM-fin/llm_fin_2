@@ -10,7 +10,6 @@ from PIL import Image
 import os
 
 def find_table(images):
-    os.environ["TESSDATA_PREFIX"] = "/usr/share/tesseract-ocr/4.00/"
     pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
     explaination_part = []
     signals = {
