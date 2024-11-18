@@ -1,3 +1,4 @@
+import streamlit as st
 from openai import OpenAI
 import google.generativeai as genai
 from utils.ModelAPI import getResponse
@@ -24,6 +25,9 @@ def routing(sql_engine, db_structure, acc_name, history:dict, llm:OpenAI|genai.G
     decision = sqlDecide(history, llm, model = model)
     
     if 'yes' in decision:
-        text2sql_instance = Quest2SQL(model="gpt-4o", engine=sql_engine, db_structure=db_structure, acc_name=acc_name)
-        query_res = text2sql_instance.get_result(history['chat_history'][-1]['content'])
-        print(query_res)
+        with st.spinner('Thinking...'):
+            text2sql_instance = Quest2SQL(model="gpt-4o", engine=sql_engine, db_structure=db_structure, acc_name=acc_name)
+            query_res, sql_queries = text2sql_instance.get_result(history['chat_history'][-1]['content'])
+        return query_res, sql_queries
+    else:
+        return None, None

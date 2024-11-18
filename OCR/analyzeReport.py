@@ -7,10 +7,13 @@ import google.generativeai as genai
 import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from PIL import Image
+import platform
 import os
 
 def find_table(images):
-    pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
+    if platform.system() == "Linux":
+        pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
+
     explaination_part = []
     signals = {
         1: ('balance sheet', ['tien mat', 'vang', 'da quy']),

@@ -72,7 +72,7 @@ with st.chat_message(avatar="graphics/ico.jpg", name="system"):
 
 if 'memory' not in st.session_state:
     st.session_state.memory = ConversationBufferMemory(return_messages=True, memory_key="chat_history")
-    st.session_state.memory.chat_memory.add_message({"role": "system", "content": "The name of AI is Anya. It assist with querying Vietnam banking financial data."})
+    st.session_state.memory.chat_memory.add_message({"role": "system", "content": "The name of AI is Anya. It assist with querying Vietnam banking financial data. If the system found out something, Anya will explain to user the result with context of finance."})
     
 # Display previous chat history
 for message in st.session_state.memory.chat_memory.messages:
@@ -103,14 +103,14 @@ if input_text:
         st.markdown(input_text)
 
     st.session_state.memory.chat_memory.add_message({"role": "user", "content": input_text})
-
-    # Routing
-    # route = routing(history = st.session_state.memory.load_memory_variables({}), 
-    #                 llm=gpt, model='gpt-4o-mini',
-    #                 sql_engine=sql_engine, acc_name=acc_name,
-    #                 db_structure=db_structure
-    #                 )
-
+    query_res, sql_queries = routing(history = st.session_state.memory.load_memory_variables({}), 
+                    llm=gpt, model='gpt-4o-mini',
+                    sql_engine=sql_engine, acc_name=acc_name,
+                    db_structure=db_structure)
+    
+    if query_res:
+        st.session_state.memory.chat_memory.add_message({"role": "system", "content": f"SQL queries: {sql_queries}, query result: {query_res}"})
+        
     response_generator = responseGenerate(llm=gpt, memory_variables= st.session_state.memory.load_memory_variables({}), model = 'gpt-4o-mini')
 
     chat_response = streamResponse(response_generator)

@@ -1,12 +1,13 @@
 import json
 from dotenv import load_dotenv
-from langchain.chat_models import ChatOpenAI
-load_dotenv()
 from langchain_community.utilities import SQLDatabase
-from langchain.chains import create_sql_query_chain
 from langchain_community.tools.sql_database.tool import QuerySQLDataBaseTool
 from langchain_openai import ChatOpenAI
+from langchain.chat_models import ChatOpenAI
+from langchain.chains import create_sql_query_chain
 import re
+
+load_dotenv()
 
 class Quest2SQL:
     def __init__(self, model="gpt-4o-mini", engine=None, db_structure=None, acc_name=None):
@@ -17,38 +18,39 @@ class Quest2SQL:
         self.acc_name = acc_name
 
     def chain_of_thought_prompt(self, question):
-        #Do lenh prompt kieu moi nen no ko work tot lam k hieu sao, truoc chay bang tieng viet lenh 
-        # Creating a well-structured prompt with clear guidance
         prompt = f"""
-        Bạn là một chuyên gia phân tích tài chính chuyên sâu. Hãy phân tích câu hỏi dưới đây và thực hiện các bước để trả lời chính xác.
+    Bạn là một chuyên gia phân tích tài chính chuyên sâu. Hãy phân tích câu hỏi dưới đây và thực hiện các bước để trả lời chính xác và chi tiết.
 
-        Câu hỏi: "{question}"
+    Câu hỏi: "{question}"
 
-        Bước 1: Xác định loại vấn đề cần phân tích và chia nhỏ vấn đề
-        - Phân tích yêu cầu và chia nhỏ bài toán: [Xác định các vấn đề cần phân tích từ câu hỏi]
-        - Mục cụ thể trong báo cáo: [Từ những vấn để đã chia nhỏ ở trên, xác định mục cụ thể cần tìm trong báo cáo (ví dụ: doanh thu, lợi nhuận ròng, tổng tài sản). Nếu là các chỉ số tài chính, xác định thành phần cụ thể để tính toán]
-        - Loại báo cáo: [Xác định loại báo cáo tài chính liên quan (Bảng cân đối kế toán, Báo cáo kết quả kinh doanh, Báo cáo lưu chuyển tiền tệ)]
-        Ví dụ ở bước 1 về về tính thanh khoản của BID năm 2022:  
-        - Thành phần cần tính toán:
-        - Current Ratio: `Tổng Tài Sản Ngắn Hạn / Nợ Ngắn Hạn`
-        - Quick Ratio: `(Tài Sản Ngắn Hạn - Hàng Tồn Kho) / Nợ Ngắn Hạn`
-        - Cash Ratio: `(Tiền Mặt + Tài Sản Tương Đương Tiền) / Nợ Ngắn Hạn`
-        Tất cả các mục được xác nhận trong ví dụ ở trong Balance_sheet
+    Bước 1: Xác định loại vấn đề cần phân tích và chia nhỏ vấn đề
+    - Phân tích yêu cầu và chia nhỏ bài toán: [Xác định các vấn đề cụ thể cần được phân tích từ câu hỏi, chẳng hạn như các chỉ số tài chính hoặc thông tin tài sản liên quan]
+    - Từ đó, hãy tạo 1 danh sách với các câu lệnh nhỏ hơn với các vấn đề nhỏ đã được chia
+    Ví dụ: ['Hãy tìm lợi nhuận sau thuế và tổng vốn rồi tính tỷ lệ ROE rồi tìm ngân hàng có ROE lớn nhất năm 2024 quý 2","Hãy tìm tổng tài sản của ACB năm 2024 quý 2"]
+
+    Bước 2: Xác định thông tin cơ bản cần truy vấn từ vấn đề ở Bước 1
+    - Tên công ty: [Liệt kê rõ những công ty được đề cập, ví dụ: BIDV, Vietcombank, ACB]
+    - Năm tài chính: [Ghi rõ năm tài chính cần phân tích, ví dụ: 2024]
+    - Kỳ báo cáo: [Xác định kỳ báo cáo cụ thể, chẳng hạn quý 1, quý 2, quý 3, hoặc "Cả năm". Nếu kỳ không được chỉ định rõ ràng, mặc định là "Cả năm"]
+    - Mục cụ thể trong báo cáo: [Dựa vào các vấn đề đã được chia nhỏ, xác định rõ mục cần tìm trong báo cáo tài chính. Ví dụ: doanh thu, lợi nhuận ròng, tổng tài sản, ROE (Return on Equity). Nếu liên quan đến các chỉ số tài chính, xác định các thành phần cụ thể để tính toán, ví dụ: lợi nhuận sau thuế, vốn chủ sở hữu]
+    - Loại báo cáo: [Xác định rõ loại báo cáo tài chính cần thiết, chẳng hạn Bảng cân đối kế toán, Báo cáo kết quả kinh doanh, Báo cáo lưu chuyển tiền tệ]
+
+    Bước 3: Trả về câu truy vấn SQL dựa trên các thông tin đã xác định ở bước 1, 2
+    - Với từng vấn đề trong danh sách trên, hãy tạo từng câu truy vấn sql cho từng vấn đề nhỏ
+    - Cấu trúc database của bạn: {json.dumps(self.db_structure)}
+    - Danh sách tên các tài khoản có sẵn: {self.acc_name}
+    Đây là ví dụ: {self.load_example()}  
     
-        Bước 2: Xác định thông tin cơ bản từ vấn đề ở bước 1
-        - Tên công ty: [Xác định những tên công ty được đề cập]
-        - Năm tài chính: [Xác định những năm tài chính được nhắc đến]
-        - Kỳ báo cáo: [Xác định kỳ báo cáo cụ thể nếu có, nếu không mặc định là "Cả năm" (Ví dụ: 1, 2, "Cả năm", 'Nửa năm')]
-
-        Bước 3: Trả về câu truy vấn SQL dựa trên các thông tin đã xác định ở bước 1, 2 và 3
-        - Đây là cấu trúc database của bạn cần sử dụng: {json.dumps(self.db_structure)}
-        - Đây là danh sách tên các tài khoản bạn cần {self.acc_name}. Hãy dựa trên đấy để tạo ra câu truy vấn SQL
-
-        Bắt đầu với Bước 1 và làm theo từng bước trên để cung cấp câu trả lời chi tiết.
-        Lưu ý: Chỉ được lấy dữ liệu từ trong database kết nối; chỉ 
-        """
+    Lưu ý: Chỉ sử dụng dữ liệu từ database đã kết nối và đảm bảo truy vấn chính xác từng chỉ số tài chính được yêu cầu. Luôn luôn trả về kèm tên tài khoản và metadata.
+    Hãy làm tuần tự từ bước 1
+    """
         return prompt
-
+    
+    def load_example(self):
+        """Loads the example text from example.txt."""
+        with open('resource/example.txt', 'r', encoding='utf-8') as file:
+            return file.read()
+        
     def get_sql_query(self, input_question):
         try:
             # Generate the prompt using the chain of thought method
@@ -57,32 +59,56 @@ class Quest2SQL:
             sql_query_chain = create_sql_query_chain(self.llm, self.sql_database)
             # Invoke the chain and get the SQL query
             sql_query = sql_query_chain.invoke({"question": prompt_cot})
-            # Make sure there are no extraneous characters in the query
-            pattern = r"```sql\s*(.*?)\s*```"
-            match = re.search(pattern, sql_query, re.DOTALL)
-            return match.group(1).strip() if match else None
+            # Extract the SQL query from the response
+            return self.extract_sql_queries(sql_query)
         except Exception as e:
             print(f"Error generating SQL query: {e}")
             return None
 
+    def extract_sql_queries(self, sql_query):
+        """
+        Extracts all SQL queries from the response and returns them in a list.
+        """
+        pattern = r"```sql\s*(.*?)\s*```"
+        matches = re.findall(pattern, sql_query, re.DOTALL)
+        # Ensure unique queries by converting to a set and back to a list
+        return list(set(match.strip() for match in matches)) if matches else []
+
+    def execute_sql_queries(self, sql_queries):
+        """
+        Execute each SQL query in the list and return the results in the order they were executed.
+        """
+        results = []  # List to store the results
+        for query in sql_queries:
+            try:
+                # Execute the query using your database connection
+                result = QuerySQLDataBaseTool(db=self.sql_database).run(query)
+                results.append(result)  # Add the result to the list
+            except Exception as e:
+                print(f"Error executing query: {query}\nError: {e}")
+                results.append(None)  # Add None if there is an error
+                ##Thêm lệnh để quay tròn lại ko là bị chết ở đây(optional)
+        return results
+    
+
     def get_result(self, question):
-        # Create a system role template for generating a complete answer
-        # system_role = """
-        # Given the following user question, corresponding SQL query, and SQL result, answer the user question.
-        # Question: {question}
-        # SQL Query: {query}
-        # SQL Result: {result}
-        # Answer:
-        # """
+        system_role_template = """
+        Given the following user question, corresponding SQL query, and SQL result, answer the user question.
+        Question: {question}
+        SQL Query: {queries}
+        SQL Result: {results}
+        Answer:
+        """
+
         try:
-            # First, generate the SQL query from the question
-            sql_query = self.get_sql_query(question)
-            if not sql_query:
-                raise ValueError("SQL query generation failed.")
-            
-            # Execute the SQL query and retrieve the result
-            query_tool = QuerySQLDataBaseTool(db=self.sql_database)
-            sql_result = query_tool.run(sql_query)
+            # Generate the SQL query from the user question
+            sql_queries = self.get_sql_query(question)
+            if not sql_queries:
+                raise ValueError("Failed to generate SQL query from the question.")
+
+            # Execute all SQL queries and retrieve results
+            sql_results = self.execute_sql_queries(sql_queries)
+
             # # Format the prompt to generate the final answer
             # answer_prompt = PromptTemplate.from_template(system_role)
             # answer_chain = answer_prompt | self.llm | StrOutputParser()
@@ -96,7 +122,7 @@ class Quest2SQL:
 
             # # Generate the final answer
             # final_answer = answer_chain.invoke(answer_input)
-            return sql_result
+            return sql_results, sql_queries
 
         except Exception as e:
             print(f"Error executing SQL query or generating result: {e}")
