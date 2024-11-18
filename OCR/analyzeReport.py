@@ -10,6 +10,7 @@ from PIL import Image
 
 
 def find_table(images):
+    pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
     explaination_part = []
     signals = {
         1: ('balance sheet', ['tien mat', 'vang', 'da quy']),
