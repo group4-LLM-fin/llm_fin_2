@@ -6,6 +6,9 @@ st.set_page_config(
 st.title('Welcome')
 
 import os
+os.system("sudo mkdir -p /usr/share/tesseract-ocr/4.00/tessdata")
+os.system("sudo cp ./tessdata/vie.traineddata /usr/share/tesseract-ocr/4.00/tessdata/")
+os.system("sudo chmod 644 /usr/share/tesseract-ocr/4.00/tessdata/vie.traineddata")
 
 # Check if the directory exists
 print("Checking tessdata directory contents:")
