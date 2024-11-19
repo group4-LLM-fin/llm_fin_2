@@ -3,6 +3,8 @@ import base64
 import json
 from PIL import Image
 from io import BytesIO
+import google.generativeai as genai
+
 
 def encode_image(image: Image.Image) -> str:
     buffered = BytesIO()
@@ -165,6 +167,98 @@ def readCashFlow(image, model:OpenAI, metadata):
     #     if chunk.choices[0].delta.content is not None:
     #         print(chunk.choices[0].delta.content, end="")
     res = response.choices[0].message.content
+    res = res.replace("json","")
+    res = res.replace("```","")
+    res = json.loads(res)
+
+    return res
+
+def readBalanceSheetGem(image, model:genai.GenerativeModel, metadata):
+    year = metadata['year']
+    response = model.generate_content(
+        [image,
+         """
+            Extract all the information in this image, return the result of the below year.
+            Return only Json format, no further explanation, Json must be flat format not nested. Expecting property name enclosed in double quotes.
+            Return the account names in English. Specify positive and negative numbers. 
+            Do not use decimal number and do not add any comma or dot into the amount.
+            For example:
+            Ví dụ:
+            {
+                "Cash and gold": amount,
+                "Deposits at the State Bank": amount,
+                "Deposits at and loans to other credit institutions": amount,
+                "Deposits at other credit institutions": amount,
+                "Loans to other credit institutions": amount,
+                "Provision for deposits at and loans to other credit institutions": amount,
+                "Trading securities": amount,
+                ...
+            }
+            The year is   
+            """ + str(year),
+        ])
+
+    res = response.text
+    res = res.replace("json","")
+    res = res.replace("```","")
+    res = json.loads(res)
+
+    return res
+
+def readIncomeGem(image, model:genai.GenerativeModel, metadata):
+    year = metadata['year']
+    response = model.generate_content(
+        [image,
+         """
+            Extract all the information in this image, return the result of the most recent day/year.
+            Return only Json format, no further explanation, Json must be flat format not nested. Expecting property name enclosed in double quotes.
+            Return the account names in English. Specify positive and negative numbers. 
+            Do not use decimal number and do not add any comma or dot into the amount.
+            For example:
+            {
+            "Interest and similar income": amount,
+            "Interest and similar expenses": amount,
+            "Net interest income": amount,
+            "Net fee and commission income": amount,
+            "Net gain/(loss) from trading foreign currencies": amount,
+            "Net gain from securities trading": amount,
+            "Income from other activities": amount,
+            ...
+            Extract all accounts
+            }  
+            The year is 
+            """ + str(year),
+        ])
+
+    res = response.text
+    res = res.replace("json","")
+    res = res.replace("```","")
+    res = json.loads(res)
+
+    return res
+
+def readCashflowGem(image, model:genai.GenerativeModel, metadata):
+    year = metadata['year']
+    response = model.generate_content(
+        [image,
+         """
+            Extract all the information in this image, return the result of the below year.
+            Return only Json format, no further explanation, Json must be flat format not nested. Expecting property name enclosed in double quotes.
+            Return the account names in English. Specify positive and negative numbers. 
+            Do not use decimal number and do not add any comma or dot into the amount.
+            For example:
+            {
+            "Cash flow from operating activities" : amount,
+            "Cash flow from investing activities" : amount,
+            "Cash flow from financing activities": amount
+            ...
+            Extract all information
+            }
+            The year is 
+            """ + str(year),
+        ])
+
+    res = response.text
     res = res.replace("json","")
     res = res.replace("```","")
     res = json.loads(res)

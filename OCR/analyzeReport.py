@@ -8,7 +8,6 @@ import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from PIL import Image
 import platform
-import os
 
 def find_table(images):
     if platform.system() == "Linux":

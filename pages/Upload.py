@@ -132,9 +132,9 @@ if st.button("Upload"):
 
         # Run each section in parallel
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            tab2_future = executor.submit(process_balancesheet, images, sections["Balance Sheet"], gpt, metadata)
-            tab3_future = executor.submit(process_incomestatement, images, sections["Income Statement"], gpt, metadata)
-            tab4_future = executor.submit(process_cashflow, images, sections["Cash Flow Statement"], gpt, metadata)
+            tab2_future = executor.submit(process_balancesheet, images, sections["Balance Sheet"], gemini, metadata)
+            tab3_future = executor.submit(process_incomestatement, images, sections["Income Statement"], gemini, metadata)
+            tab4_future = executor.submit(process_cashflow, images, sections["Cash Flow Statement"], gemini, metadata)
 
         with tab2:
             with st.spinner('Read Balance Sheet...'):

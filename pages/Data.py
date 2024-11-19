@@ -60,7 +60,6 @@ def delete():
     if cance:
         st.session_state.delete_triggered = False
         st.rerun()
-        
 
 def get_data(_db: Database):
     reports = _db.read("METADATA", "reportid, bankid, year, quarter")
