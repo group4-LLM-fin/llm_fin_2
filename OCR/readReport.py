@@ -183,7 +183,6 @@ def readBalanceSheetGem(image, model:genai.GenerativeModel, metadata):
             Return the account names in English. Specify positive and negative numbers. 
             Do not use decimal number and do not add any comma or dot into the amount.
             For example:
-            Ví dụ:
             {
                 "Cash and gold": amount,
                 "Deposits at the State Bank": amount,
