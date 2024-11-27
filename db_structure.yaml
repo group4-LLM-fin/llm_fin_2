@@ -1,0 +1,138 @@
+BANK:
+  comment: Contains the list of banks
+  columns:
+    - name: bankid
+      type: INTEGER
+      comment: Contains the list of bank IDs
+    - name: bankname
+      type: TEXT
+      comment: Contains the list of Vietnamese bank names
+    - name: symbol
+      type: TEXT
+      comment: Contains the code of banks (e.g., BID, ACB, VCB,...most of them have 3 capital letters)
+    - name: abbreviation
+      type: TEXT
+      comment: Contains the English abbreviations of banks (e.g., VP Bank, BIDV)
+    - name: banknameeng
+      type: VARCHAR(255)
+      comment: Contains the English names of banks
+    - name: bankembedding
+      type: VECTOR
+      comment: Contains the embeddings of bank names
+
+BALANCESHEET:
+  comment: Contains all balance sheets of stored reports
+  columns:
+    - name: id
+      type: TEXT
+      comment: PK for each account in the balance sheet of each bank report
+    - name: reportid
+      type: TEXT
+      comment: Contains all report IDs (e.g., acb-2024-2)
+    - name: accountno
+      type: INTEGER
+      comment: Contains the account numbers in the balance sheet
+    - name: accountname
+      type: TEXT
+      comment: Contains the account names in the balance sheet
+    - name: amount
+      type: NUMERIC(15, 2)
+      comment: Contains the amounts of accounts in the balance sheet
+
+INCOMESTATEMENT:
+  comment: Contains all income statements of stored reports
+  columns:
+    - name: id
+      type: TEXT
+      comment: PK for each account in the income statement of each bank report
+    - name: reportid
+      type: TEXT
+      comment: Contains all report IDs (e.g., acb-2024-2)
+    - name: accountno
+      type: INTEGER
+      comment: Contains the account numbers in the income statement
+    - name: accountname
+      type: TEXT
+      comment: Contains the account names in the income statement
+    - name: amount
+      type: NUMERIC(15, 2)
+      comment: Contains the amounts of accounts in the income statement
+
+explanation:
+  comment: Contains all the text besides 3 main tables in the report
+  columns:
+    - name: id
+      type: UUID
+      comment: Contains all the text besides 3 main tables in the report
+    - name: bank
+      type: TEXT
+      comment: Contains the symbol of the bank
+    - name: year
+      type: INTEGER
+    - name: quarter
+      type: INTEGER
+      comment: Quarter of the report
+    - name: text
+      type: TEXT
+      comment: The chunk of content of the report
+    - name: page
+      type: TEXT
+      comment: The page number of the chunk of content
+    - name: part
+      type: INTEGER
+      comment: The section of the chunk of content
+    - name: embedding
+      type: VECTOR
+      comment: The embedding of the chunk of content
+
+CASHFLOW:
+  comment: Contains all cash flow tables of stored reports
+  columns:
+    - name: id
+      type: TEXT
+      comment: PK for each account in the cash flow table of each bank report
+    - name: reportid
+      type: TEXT
+      comment: Contains all report IDs (e.g., acb-2024-2)
+    - name: accountname
+      type: TEXT
+      comment: Contains the account names in the cash flow table
+    - name: amount
+      type: NUMERIC(15, 2)
+      comment: Contains the amounts of accounts in the cash flow table
+
+METADATA:
+  comment: Contains the list of stored reports
+  columns:
+    - name: reportid
+      type: TEXT
+      comment: Contains all report IDs (e.g., acb-2024-2)
+    - name: bankid
+      type: INTEGER
+      comment: Contains the list of bank IDs
+    - name: year
+      type: INTEGER
+    - name: quarter
+      type: INTEGER
+      comment: Contains all report IDs (e.g., acb-2024-2)
+    - name: banksymbol
+      type: TEXT
+      comment: Contains the stock codes of banks (e.g., BID, most of them have 3 capital letters)
+
+ACCNO:
+  comment: Contains the list of account types in the report
+  columns:
+    - name: id
+      type: UUID
+    - name: accno
+      type: INTEGER
+      comment: Contains the list of account numbers in the report
+    - name: accname
+      type: TEXT
+      comment: Contains the list of account names in the report
+    - name: embedding
+      type: VECTOR
+      comment: Contains the embeddings of account names in the report
+    - name: report
+      type: TEXT
+      comment: Contains the type of account in the report (e.g., BS for Balance Sheet, IS for Income Statement, CF for Cash Flow)
