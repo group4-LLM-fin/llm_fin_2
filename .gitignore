@@ -8,3 +8,7 @@ Untitled-1.ipynb
 *.pyc
 **/*.pyc
 Tesseract-OCR/
+Tesseract-OCR/*
+resource/*
+resource/
+*.ipynb

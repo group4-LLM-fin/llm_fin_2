@@ -8,6 +8,8 @@ import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from PIL import Image
 import platform
+from concurrent.futures import ThreadPoolExecutor
+
 
 def find_table(images):
     if platform.system() == "Linux":
@@ -25,7 +27,6 @@ def find_table(images):
     k = 1
     progress_bar = st.progress(0, text='Optical Character Recognizing...')
     for i, image in enumerate(images):
-
         text = pytesseract.image_to_string(
             image, lang='vie')  
         test_text = unidecode(text.lower())
@@ -57,12 +58,18 @@ def find_table(images):
         
         progress_bar.progress(i+1, text='Optical Character Recognizing')
         
+    def process_chunk(j):
+        text = pytesseract.image_to_string(images[j], lang='vie')
+        if result[j] == 4:
+            return chunking(text)
+        return None
 
-    # if result[i] == 4:
-    #     chunked_text = chunking(text)
-    #     explaination_part.append(chunked_text)
-
+    with ThreadPoolExecutor() as executor:
+        chunks_result = list(filter(None, executor.map(process_chunk, range(i-1, len(result)))))
     
+    for chunks in chunks_result:
+        explaination_part.extend(chunks)
+
     progress_bar.empty()
 
     result_filled = (
@@ -89,8 +96,13 @@ def find_table(images):
             "Explanation": (result_filled.index('thuyet minh'), len(result_filled) - 1)
         }
 
-    return sections, metadata, explaination_part, images
+    # with open("resource/explanation_part.txt", "w", encoding='utf-8') as file:
+    #     for sublist in explaination_part:
+    #         for item in sublist:
+    #             file.write(f"{item}\n")
 
+
+    return sections, metadata, explaination_part, images
 
 def split_img(img):
     keywords = ['ngoai', 'bang', 'can', 'doi', 'toan']
@@ -123,7 +135,7 @@ def chunking(text):
     text = text = text.replace('.\n\n', '. ').replace(
         '\n\n', '. ').replace('\n', ' ')
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=2000, chunk_overlap=20)
+        chunk_size=2000, chunk_overlap=40)
     texts = text_splitter.split_text(text)
     return texts
 
