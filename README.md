@@ -53,7 +53,7 @@ This app is an implementation of an end-to-end model for LLM finacial document u
     ├── parallelize_reading.py
     └── __init__.py
 
-
+```
 # Getting started
 
 ### Prerequisites
