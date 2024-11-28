@@ -1,5 +1,59 @@
-# llm_fin
+# LLM_Fin
 This app is an implementation of an end-to-end model for LLM finacial document understanding. In this project we focus on analysis from bank financial documents.
+
+# Project Structure
+# Project Structure
+
+```plaintext
+.
+├── .env
+│   ├── .env.example
+├── .gitignore
+├── Dockerfile
+├── Home.py
+├── packages.txt
+├── README.md
+├── requirements.txt
+├── test.Json
+├── .streamlit/
+│   └── config.toml
+├── database/
+│   ├── baseDatabase.py
+│   ├── insertFixedData.py
+│   ├── setUpDatabase.py
+│   └── vectorDB.py
+├── graphics/
+│   ├── anya_logo.png
+│   ├── graphic.png
+│   ├── ico.jpg
+│   ├── logo.png
+│   └── loid.png
+├── logicRAG/
+│   ├── ques2sql.py
+│   ├── routing.py
+│   └── stream_output.py
+├── OCR/
+│   ├── analyzeReport.py
+│   ├── insertData.py
+│   ├── readReport.py
+│   └── __init__.py
+├── pages/
+│   ├── Chat.py
+│   ├── Data.py
+│   ├── Upload.py
+│   └── __init__.py
+├── resource/
+│   ├── example.txt
+│   ├── explanation_part.txt
+│   └── RAG_get_anwser.py
+└── utils/
+    ├── getEmbedding.py
+    ├── latex.py
+    ├── MessageGeminiFormat.py
+    ├── ModelAPI.py
+    ├── parallelize_reading.py
+    └── __init__.py
+
 
 # Getting started
 
