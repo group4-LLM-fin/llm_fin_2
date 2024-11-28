@@ -2,7 +2,6 @@
 This app is an implementation of an end-to-end model for LLM finacial document understanding. In this project we focus on analysis from bank financial documents.
 
 # Project Structure
-# Project Structure
 
 ```plaintext
 .
