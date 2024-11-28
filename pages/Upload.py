@@ -41,7 +41,7 @@ def get_env():
 
     return OpenAIembedder, VoyageEmbedder, gemini, gpt
 
-# @st.cache_resource
+@st.cache_resource
 def get_dbconn():
     user = os.getenv('USER')
     host = os.getenv('HOST')
