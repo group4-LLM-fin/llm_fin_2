@@ -84,7 +84,7 @@ with col2:
 
 uploaded_file = st.file_uploader("Choose a file", type = 'pdf', accept_multiple_files = False)
 
-if st.button("Upload"):
+if st.button("Upload", disabled='True'):
     
     if uploaded_file:
         progress_bar = st.progress(0,"Scanning file...")

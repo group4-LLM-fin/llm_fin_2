@@ -12,3 +12,4 @@ Tesseract-OCR/*
 resource/*
 resource/
 *.ipynb
+*.zip

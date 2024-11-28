@@ -116,7 +116,7 @@ class VectorDB:
 
         try:
             # Generate the query embedding using the embedder
-            query_embeddings = get_embedding_voyage(texts=query_texts, model=self.client)
+            query_embeddings = get_embedding_voyage(texts=query_texts, client=vo)
             res = []
             for query_embedding in query_embeddings:
                 embedding_str = f"ARRAY{query_embedding}::vector"
