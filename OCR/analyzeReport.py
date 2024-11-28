@@ -23,7 +23,7 @@ def find_table(images):
     k = 1
     progress_bar = st.progress(0, text='Optical Character Recognizing...')
     for i, image in enumerate(images):
-
+        if k == 5: break
         text = pytesseract.image_to_string(
             image, lang='vie')  # Pass PIL image to pytesseract
         test_text = unidecode(text.lower())
