@@ -4,6 +4,7 @@ from unidecode import unidecode
 import pandas as pd
 import json
 import google.generativeai as genai
+from openai import OpenAI
 import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from PIL import Image
@@ -135,28 +136,62 @@ def chunking(text):
     text = text = text.replace('.\n\n', '. ').replace(
         '\n\n', '. ').replace('\n', ' ')
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500, chunk_overlap=40)
+        chunk_size=1000, chunk_overlap=40)
     texts = text_splitter.split_text(text)
     return texts
 
 
-def get_metadata(extracted_text, model: genai.GenerativeModel):
+def get_metadata(extracted_text, model: genai.GenerativeModel|OpenAI):
+    try:
+        response = model.generate_content(["""
+            Đây là báo cáo tài chính của ngân hàng nào:
+            Các ngân hàng có trong database là:
+            [('Ngân hàng TM TNHH MTV Dầu khí Toàn Cầu', 79320001), ('Ngân hàng TMCP Bản Việt', 79327001), ('Ngân hàng TMCP Đông Nam Á', 1317001), ('Ngân hàng TMCP Nam Á', 79306001), ('Ngân hàng TMCP Phát triển Thành phố Hồ Chí Minh', 79321001), ('Ngân hàng TMCP Phương Đông', 79333001), ('Ngân hàng TMCP Quốc tế Việt Nam', 79314013), ('Ngân hàng TMCP Sài Gòn Hà Nội', 1348002), ('Ngân hàng TMCP Sài Gòn', 79334001), ('Ngân hàng TMCP Việt Á', 1355002), ('Ngân hàng TNHH MTV ANZ Việt Nam', 79602001), ('Ngân hàng TNHH MTV CIMB Việt Nam', 1661001), ('Ngân hàng TNHH MTV Standard Chartered Việt Nam', 1604001), ('Ngân hàng TMCP Tiên Phong', 1358001), ('Ngân hàng TMCP Bảo Việt', 1359001), ('Ngân hàng TNHH MTV Shinhan Việt Nam', 79616001), ('Ngân hàng TNHH Indovina', 79502001), ('Ngân hàng TMCP Quốc Dân', 1352002), ('Ngân hàng TNHH MTV Woori Việt Nam', 1663001), ('Ngân hàng TMCP Thịnh Vượng và Phát Triển', 1341001), ('Ngân hàng Citibank', 79654001), ('NH TMCP Á Châu', 79307001), ('NHTMCP An Bình', 1323002), ('NH TMCP Quân Đội', 1311001), ('NHTMCP Hàng Hải', 1302001), ('NH Việt Nam Thịnh Vượng', 1309001), ('NHTMCP Ngoại Thương Việt Nam', 1203001), ('NH Nông nghiệp và Phát triển Nông thôn Việt Nam', 1204009), ('NHTMCP Kỹ Thương Việt Nam', 1310001), ('NH TMCP Công thương Việt Nam', 1201001), ('NHTMCP Sài Gòn Thương Tín', 79303001), ('NH TMCP Đầu Tư và Phát triển Việt Nam', 1202001), ('NH TMCP Xuất Nhập Khẩu', 79305001), ('NH Hong Leong Việt Nam', 79603001), ('NH TMCP Kiên Long', 79353001), ('Ngân hàng TMCP Lộc Phát Việt Nam', 1357001), ('NH TM TNHH MTV Đại Dương', 1319001), ('NH TNHH MTV Public Việt Nam', 1501001), ('NH Deutsche Bank', 79619001), ('NH TMCP Sài Gòn Công Thương', 79308001)]
+            Chỉ trả về dạng Json, ngoài ra không giải thích gì thêm, theo format ví dụ:
+                {"banksymbol": "VCB",
+                "year": 2024,
+                "quarter": 3,
+                "reportid": "vcb-2024-3",
+                "bankid": 01203001}
+            Thông tin ngân hàng cần phân tích:
+            """ + extracted_text])
+        metadata = response.text.replace("json", "")
+        metadata = metadata.replace("```", "")
+        metadata = json.loads(metadata)
+    except:
+        response = model.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+            "role": "user",
+            "content": [
+                {"type": "text", 
+                "text": """
+            Đây là báo cáo tài chính của ngân hàng nào:
+            Các ngân hàng có trong database là:
+            [('Ngân hàng TM TNHH MTV Dầu khí Toàn Cầu', 79320001), ('Ngân hàng TMCP Bản Việt', 79327001), ('Ngân hàng TMCP Đông Nam Á', 1317001), ('Ngân hàng TMCP Nam Á', 79306001), ('Ngân hàng TMCP Phát triển Thành phố Hồ Chí Minh', 79321001), ('Ngân hàng TMCP Phương Đông', 79333001), ('Ngân hàng TMCP Quốc tế Việt Nam', 79314013), ('Ngân hàng TMCP Sài Gòn Hà Nội', 1348002), ('Ngân hàng TMCP Sài Gòn', 79334001), ('Ngân hàng TMCP Việt Á', 1355002), ('Ngân hàng TNHH MTV ANZ Việt Nam', 79602001), ('Ngân hàng TNHH MTV CIMB Việt Nam', 1661001), ('Ngân hàng TNHH MTV Standard Chartered Việt Nam', 1604001), ('Ngân hàng TMCP Tiên Phong', 1358001), ('Ngân hàng TMCP Bảo Việt', 1359001), ('Ngân hàng TNHH MTV Shinhan Việt Nam', 79616001), ('Ngân hàng TNHH Indovina', 79502001), ('Ngân hàng TMCP Quốc Dân', 1352002), ('Ngân hàng TNHH MTV Woori Việt Nam', 1663001), ('Ngân hàng TMCP Thịnh Vượng và Phát Triển', 1341001), ('Ngân hàng Citibank', 79654001), ('NH TMCP Á Châu', 79307001), ('NHTMCP An Bình', 1323002), ('NH TMCP Quân Đội', 1311001), ('NHTMCP Hàng Hải', 1302001), ('NH Việt Nam Thịnh Vượng', 1309001), ('NHTMCP Ngoại Thương Việt Nam', 1203001), ('NH Nông nghiệp và Phát triển Nông thôn Việt Nam', 1204009), ('NHTMCP Kỹ Thương Việt Nam', 1310001), ('NH TMCP Công thương Việt Nam', 1201001), ('NHTMCP Sài Gòn Thương Tín', 79303001), ('NH TMCP Đầu Tư và Phát triển Việt Nam', 1202001), ('NH TMCP Xuất Nhập Khẩu', 79305001), ('NH Hong Leong Việt Nam', 79603001), ('NH TMCP Kiên Long', 79353001), ('Ngân hàng TMCP Lộc Phát Việt Nam', 1357001), ('NH TM TNHH MTV Đại Dương', 1319001), ('NH TNHH MTV Public Việt Nam', 1501001), ('NH Deutsche Bank', 79619001), ('NH TMCP Sài Gòn Công Thương', 79308001)]
+            Chỉ trả về dạng Json, ngoài ra không giải thích gì thêm, theo format ví dụ:
+                {"banksymbol": "VCB",
+                "year": 2024,
+                "quarter": 3,
+                "reportid": "vcb-2024-3",
+                "bankid": 01203001}
+            Thông tin ngân hàng cần phân tích:
+            """ + extracted_text},
+            ],
+            }
+        ],
+        stream = False,
+        response_format = { "type": "json_object" },
+        max_tokens = 2048,
+        )
 
-    response = model.generate_content(["""
-        Đây là báo cáo tài chính của ngân hàng nào:
-        Các ngân hàng có trong database là:
-        [('Ngân hàng TM TNHH MTV Dầu khí Toàn Cầu', 79320001), ('Ngân hàng TMCP Bản Việt', 79327001), ('Ngân hàng TMCP Đông Nam Á', 1317001), ('Ngân hàng TMCP Nam Á', 79306001), ('Ngân hàng TMCP Phát triển Thành phố Hồ Chí Minh', 79321001), ('Ngân hàng TMCP Phương Đông', 79333001), ('Ngân hàng TMCP Quốc tế Việt Nam', 79314013), ('Ngân hàng TMCP Sài Gòn Hà Nội', 1348002), ('Ngân hàng TMCP Sài Gòn', 79334001), ('Ngân hàng TMCP Việt Á', 1355002), ('Ngân hàng TNHH MTV ANZ Việt Nam', 79602001), ('Ngân hàng TNHH MTV CIMB Việt Nam', 1661001), ('Ngân hàng TNHH MTV Standard Chartered Việt Nam', 1604001), ('Ngân hàng TMCP Tiên Phong', 1358001), ('Ngân hàng TMCP Bảo Việt', 1359001), ('Ngân hàng TNHH MTV Shinhan Việt Nam', 79616001), ('Ngân hàng TNHH Indovina', 79502001), ('Ngân hàng TMCP Quốc Dân', 1352002), ('Ngân hàng TNHH MTV Woori Việt Nam', 1663001), ('Ngân hàng TMCP Thịnh Vượng và Phát Triển', 1341001), ('Ngân hàng Citibank', 79654001), ('NH TMCP Á Châu', 79307001), ('NHTMCP An Bình', 1323002), ('NH TMCP Quân Đội', 1311001), ('NHTMCP Hàng Hải', 1302001), ('NH Việt Nam Thịnh Vượng', 1309001), ('NHTMCP Ngoại Thương Việt Nam', 1203001), ('NH Nông nghiệp và Phát triển Nông thôn Việt Nam', 1204009), ('NHTMCP Kỹ Thương Việt Nam', 1310001), ('NH TMCP Công thương Việt Nam', 1201001), ('NHTMCP Sài Gòn Thương Tín', 79303001), ('NH TMCP Đầu Tư và Phát triển Việt Nam', 1202001), ('NH TMCP Xuất Nhập Khẩu', 79305001), ('NH Hong Leong Việt Nam', 79603001), ('NH TMCP Kiên Long', 79353001), ('Ngân hàng TMCP Lộc Phát Việt Nam', 1357001), ('NH TM TNHH MTV Đại Dương', 1319001), ('NH TNHH MTV Public Việt Nam', 1501001), ('NH Deutsche Bank', 79619001), ('NH TMCP Sài Gòn Công Thương', 79308001)]
-        Chỉ trả về dạng Json, ngoài ra không giải thích gì thêm, theo format ví dụ:
-            {"banksymbol": "VCB",
-            "year": 2024,
-            "quarter": 3,
-            "reportid": "vcb-2024-3",
-            "bankid": 01203001}
-        Thông tin ngân hàng cần phân tích:
-        """ + extracted_text])
-
-    metadata = response.text.replace("json", "")
-    metadata = metadata.replace("```", "")
-    metadata = json.loads(metadata)
+        # for chunk in response:
+        #     if chunk.choices[0].delta.content is not None:
+        #         print(chunk.choices[0].delta.content, end="")
+        res = response.choices[0].message.content
+        res = res.replace("json","")
+        res = res.replace("```","")
+        metadata = json.loads(res)    
 
     return metadata

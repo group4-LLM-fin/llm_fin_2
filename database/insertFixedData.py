@@ -41,13 +41,13 @@ def insertAccountData(db: Database = None, embedder = None):
         accountName.append(value)
         accountNo.append(key)
         acc = str(key)
-        if acc[0] in [1,2,3,4,5,6]:
+        if acc[0] in ['1','2','3','4','5','6']:
             report.append("BS")
-        elif acc[0] in [7,8]:
+        elif acc[0] in ['7','8']:
             report.append("IS")
 
     accEmbed = get_embedding_voyage(texts=accountName, client=embedder)
-    print(f'Get {len(accEmbed)} embeddings successfuly')
+    print(f'Get {len(accEmbed), len(report)} embeddings successfuly')
     
     records = [
     (str(uuid.uuid4()), accountNo[i], accountName[i], accEmbed[i], report[i])
@@ -106,7 +106,7 @@ def insertCashflow(db: Database = None, embedder = None):
     report = ["CS"]*len(sections)
 
     records = [
-    (str(uuid.uuid4()),  sections[i], accEmbed[i], report[i])
+    (str(uuid.uuid4()), sections[i], accEmbed[i], report[i])
     for i in range(len(sections))
     ]
 
@@ -149,7 +149,7 @@ if __name__ == '__main__':
         password=password
     )
 
-    # insertAccountData(db = db, embedder=vo)
+    insertAccountData(db = db, embedder=vo)
     insertCashflow(db=db, embedder=vo)
     
 

@@ -5,39 +5,40 @@ from dotenv import load_dotenv
 import uuid
 import concurrent.futures
 from typing import List
+import json
 
 def insert_metadata(metadata, db: Database):
     db.insert("METADATA", **metadata)
 
 def insert_balancesheet(metadata:dict, response_llm: str|dict, vectordb: VectorDB, db: Database):
-  
+   
     # Mapping account name
     if response_llm is str:
         bs = json.loads(response_llm)
     else:
         bs = response_llm
 
-    reportid = [metadata['reportid']]*len(bs)
     accno, accname, amount = [], [], []
     query_texts = list(bs.keys())
-    
-    # Mapping account no.
+
+    # Mapping account no.   
     results = vectordb.query_with_distance(
-        query_texts, 
+        query_texts=query_texts, 
         table_name="ACCNO",
         distance='L2',
         columns=["accno", "accname"], 
         where_clauses=[
         "report = 'BS'"
-        ],
+        ],      
         limit=1
     )
-    
     for i,key in zip(range(len(results)),query_texts):
-        accno.append(results[i][0]['accno'])
-        accname.append(results[i][0]['accname'])
-        amount.append(bs[key])
+        if results[i][0]:
+            accno.append(results[i][0]['accno'])
+            accname.append(results[i][0]['accname'])
+            amount.append(bs[key])
 
+    reportid = [metadata['reportid']]*len(amount)
     # Commit data
     records = [
     (str(uuid.uuid4()), reportid[i], accno[i], accname[i], amount[i])
@@ -54,17 +55,16 @@ def insert_balancesheet(metadata:dict, response_llm: str|dict, vectordb: VectorD
 def insert_income(metadata:dict, response_llm: str|dict, vectordb: VectorDB, db: Database =None):
     # Mapping account name
     if response_llm is str:
-        bs = json.loads(response_llm)
+        ics = json.loads(response_llm)
     else:
-        bs = response_llm
+        ics = response_llm
 
-    reportid = [metadata['reportid']]*len(bs)
     accno, accname, amount = [], [], []
-    query_texts = list(bs.keys())
+    query_texts = list(ics.keys())
     
     # Mapping account no.
     results = vectordb.query_with_distance(
-        query_texts, 
+        query_texts = query_texts, 
         table_name="ACCNO",
         distance='L2',
         columns=["accno", "accname"], 
@@ -74,16 +74,16 @@ def insert_income(metadata:dict, response_llm: str|dict, vectordb: VectorDB, db:
         limit=1
     )
     for i,key in zip(range(len(results)),query_texts):
-        accno.append(results[i][0]['accno'])
-        accname.append(results[i][0]['accname'])
-        amount.append(bs[key])
-
+        if results[i][0]:
+            accno.append(results[i][0]['accno'])
+            accname.append(results[i][0]['accname'])
+            amount.append(ics[key])
+    reportid = [metadata['reportid']]*len(amount)
     # Commit data
     records = [
     (str(uuid.uuid4()), reportid[i], accno[i], accname[i], amount[i])
     for i in range(len(accno))
     ]
-
     sql = """
     INSERT INTO "INCOMESTATEMENT" (id, reportid, accountno, accountname, amount)
     VALUES (%s, %s, %s, %s, %s);
@@ -97,13 +97,13 @@ def insert_cashflow(metadata:dict, response_llm: str|dict, vectordb: VectorDB, d
     else:
         bs = response_llm
 
-    reportid = [metadata['reportid']]*len(bs)
+    
     accname, amount = [], []
     query_texts = list(bs.keys())
     
     # Mapping account no.
     results = vectordb.query_with_distance(
-        query_texts, 
+        query_texts = query_texts, 
         table_name="ACCNO",
         distance='L2',
         columns=["accname"], 
@@ -113,9 +113,11 @@ def insert_cashflow(metadata:dict, response_llm: str|dict, vectordb: VectorDB, d
         limit=1
     )
     for i,key in zip(range(len(results)),query_texts):
-        accname.append(results[i][0]['accname'])
-        amount.append(bs[key])
+        if results[i][0]:
+            accname.append(results[i][0]['accname'])
+            amount.append(bs[key])
 
+    reportid = [metadata['reportid']]*len(amount)
     # Commit data
     records = [
     (str(uuid.uuid4()), reportid[i], accname[i], amount[i])
@@ -145,16 +147,21 @@ def insert_chunk(metadata, chunks:List, embeddings:List, vectordb: VectorDB, db:
 
 def insert_all(metadata, bs: str|dict, ics: str|dict, cf: str|dict, chunks:List, embeddings:List , vectordb: VectorDB, db: Database):
     insert_metadata(metadata, db)
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        balancesheet_future = executor.submit(insert_balancesheet, metadata, bs, vectordb, db)
-        income_future = executor.submit(insert_income, metadata, ics, vectordb, db)
-        cashflow_future = executor.submit(insert_cashflow, metadata, cf, vectordb, db)
-        chunk_future = executor.submit(insert_chunk, metadata, chunks, embeddings, vectordb, db)
+    insert_balancesheet(metadata, bs, vectordb, db)
+    insert_income(metadata, ics, vectordb, db)
+    insert_cashflow(metadata, cf, vectordb, db)
+    insert_chunk(metadata, chunks, embeddings, vectordb, db)
+    # with concurrent.futures.ThreadPoolExecutor() as executor:
+        
+    #     balancesheet_future = executor.submit(insert_balancesheet, metadata, bs, vectordb, db)
+    #     income_future = executor.submit(insert_income, metadata, ics, vectordb, db)
+    #     cashflow_future = executor.submit(insert_cashflow, metadata, cf, vectordb, db)
+    #     chunk_future = executor.submit(insert_chunk, metadata, chunks, embeddings, vectordb, db)
 
-        balancesheet_future.result() 
-        income_future.result()
-        cashflow_future.result()
-        chunk_future.result()
+    #     balancesheet_future.result() 
+    #     income_future.result()
+    #     cashflow_future.result()
+    #     chunk_future.result()
 
 if __name__ == '__main__':
     metadata = {

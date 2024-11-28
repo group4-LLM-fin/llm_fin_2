@@ -41,7 +41,7 @@ def get_env():
 
     return OpenAIembedder, VoyageEmbedder, gemini, gpt
 
-@st.cache_resource
+# @st.cache_resource
 def get_dbconn():
     user = os.getenv('USER')
     host = os.getenv('HOST')
@@ -84,7 +84,7 @@ with col2:
 
 uploaded_file = st.file_uploader("Choose a file", type = 'pdf', accept_multiple_files = False)
 
-if st.button("Upload", disabled='True'):
+if st.button("Upload", disabled=False):
     
     if uploaded_file:
         progress_bar = st.progress(0,"Scanning file...")
@@ -114,7 +114,7 @@ if st.button("Upload", disabled='True'):
         with tab1:
             # Analyze metadata
             with st.spinner(text="Getting metadata"):
-                metadata = get_metadata(extracted_text= metadata_text, model = gemini)
+                metadata = get_metadata(extracted_text= metadata_text, model = gpt)
                 
                 metadata_df = dict()
                 # Find bank name
