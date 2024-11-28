@@ -1,6 +1,6 @@
-# LLM_Fin
+# Anya Financial Expert
 <p align="center">
-  <img src="graphics/anya_logo.png" alt="Logo" width="150">
+  <img src="graphics/anya_logo.png" alt="Logo" width="80">
 </p>
 
 This app is an implementation of an end-to-end model for LLM finacial document understanding. In this project we focus on analysis from bank financial documents.
