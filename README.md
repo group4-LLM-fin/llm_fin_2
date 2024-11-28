@@ -37,13 +37,21 @@ streamlit run Home.py --server.port 6789
 ```
 
 # TO DO
-- [x] Format project structure
-  - [ ] [Minh Anh] Complete project structure: create environment, adding requirements.txt and .env files 
-- [ ] [Ngoc] Implement RAG logic
-  - [ ] LLM API
-  - [ ] Embedding search
-  - [ ] Reranking model
-  - [ ] ...  
-- [ ] [Hoang Minh] Implement OCR
-  - [ ] OCR model weight
-  - [ ] ...
+- [x] Project Structure
+  - [x]  Complete project structure: create environment, adding requirements.txt and .env files
+  - [x]  Deployment
+  - [x]  Database setting
+- [ ] Implement RAG logic
+  - [x] LLM API
+  - [x] Embedding search
+  - [x] Text to SQL
+  - [x] Chain of thought
+  - [x] SQL query
+  - [ ] Fix SQL  query in case error
+  - [x] Evaluation
+- [ ] Implement OCR
+  - [x] Pytesseract
+  - [x] Vision Language model
+  - [x] Analyze documment
+  - [x] Evaluation
+  
