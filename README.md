@@ -1,12 +1,12 @@
 # LLM_Fin
+![Logo](graphics/anya_logo.png)
 This app is an implementation of an end-to-end model for LLM finacial document understanding. In this project we focus on analysis from bank financial documents.
 
 # Project Structure
 
 ```plaintext
 .
-├── .env
-│   ├── .env.example
+├── .env.example
 ├── .gitignore
 ├── Dockerfile
 ├── Home.py
@@ -22,11 +22,7 @@ This app is an implementation of an end-to-end model for LLM finacial document u
 │   ├── setUpDatabase.py
 │   └── vectorDB.py
 ├── graphics/
-│   ├── anya_logo.png
-│   ├── graphic.png
-│   ├── ico.jpg
-│   ├── logo.png
-│   └── loid.png
+│   ├── ...
 ├── logicRAG/
 │   ├── ques2sql.py
 │   ├── routing.py
