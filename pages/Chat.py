@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from sqlalchemy.engine import URL
 import google.generativeai as genai
 from logicRAG.routing import routing
+from database.vectorDB import VectorDB
 from sqlalchemy import create_engine, inspect
 from logicRAG.stream_output import responseGenerate
 from langchain_community.utilities import SQLDatabase
@@ -40,10 +41,19 @@ def initializing():
     port=port,
     database=dbname,
     )
+    db_config = {
+        'user': user,
+        'password': password,
+        'host': host,
+        'port': port,
+        'dbname': dbname
+    }
+
+    vectordb = VectorDB(**db_config)
     sql_engine = create_engine(sqlalchemy_connection_url)
     inspector = inspect(sql_engine)
     sql_database = SQLDatabase(engine=sql_engine)
-    return gpt, gemini, inspector, sql_engine, sql_database
+    return gpt, gemini, inspector, sql_engine, sql_database, vectordb
 
 @st.cache_data
 def getDatabaseInfo():
@@ -64,7 +74,7 @@ def getDatabaseInfo():
     
     return db_structure, acc_name
 
-gpt, gemini, inspector, sql_engine, sql_database = initializing()
+gpt, gemini, inspector, sql_engine, sql_database, vectordb = initializing()
 db_structure, acc_name = getDatabaseInfo()
 
 with st.chat_message(avatar="graphics/ico.jpg", name="system"):
@@ -105,12 +115,15 @@ if input_text:
     st.session_state.memory.chat_memory.add_message({"role": "user", "content": input_text})
     query_res, sql_queries = routing(history = st.session_state.memory.load_memory_variables({}), 
                     llm=gpt, model='gpt-4o-mini',
+                    vectordb= vectordb,
                     sql_engine=sql_engine, acc_name=acc_name,
                     db_structure=db_structure)
     
-    if query_res:
+    if sql_queries:
         st.session_state.memory.chat_memory.add_message({"role": "system", "content": f"SQL queries: {sql_queries}, query result: {query_res}"})
-        
+    else:
+        st.session_state.memory.chat_memory.add_message({"role": "system", "content": f"Query results: {query_res}"})
+
     response_generator = responseGenerate(llm=gpt, memory_variables= st.session_state.memory.load_memory_variables({}), model = 'gpt-4o-mini')
 
     chat_response = streamResponse(response_generator)

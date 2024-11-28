@@ -236,7 +236,7 @@ def readIncomeGem(image, model:genai.GenerativeModel, metadata):
 
     return res
 
-def readCashflowGem(image, model:genai.GenerativeModel, metadata):
+def readCashFlowGem(image, model:genai.GenerativeModel, metadata):
     year = metadata['year']
     response = model.generate_content(
         [image,

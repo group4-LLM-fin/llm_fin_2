@@ -4,11 +4,12 @@ import os
 from dotenv import load_dotenv
 import uuid
 import concurrent.futures
+from typing import List
 
 def insert_metadata(metadata, db: Database):
     db.insert("METADATA", **metadata)
 
-def insert_balancesheet(metadata, response_llm: str|dict, vectordb: VectorDB, db: Database):
+def insert_balancesheet(metadata:dict, response_llm: str|dict, vectordb: VectorDB, db: Database):
   
     # Mapping account name
     if response_llm is str:
@@ -50,7 +51,7 @@ def insert_balancesheet(metadata, response_llm: str|dict, vectordb: VectorDB, db
     
     db.execute_many(query=sql, records=records)
 
-def insert_income(metadata, response_llm: str|dict, vectordb: VectorDB, db: Database =None):
+def insert_income(metadata:dict, response_llm: str|dict, vectordb: VectorDB, db: Database =None):
     # Mapping account name
     if response_llm is str:
         bs = json.loads(response_llm)
@@ -90,7 +91,7 @@ def insert_income(metadata, response_llm: str|dict, vectordb: VectorDB, db: Data
     
     db.execute_many(query=sql, records=records)
 
-def insert_cashflow(metadata, response_llm: str|dict, vectordb: VectorDB, db: Database =None):
+def insert_cashflow(metadata:dict, response_llm: str|dict, vectordb: VectorDB, db: Database =None):
     if response_llm is str:
         bs = json.loads(response_llm)
     else:
@@ -128,20 +129,32 @@ def insert_cashflow(metadata, response_llm: str|dict, vectordb: VectorDB, db: Da
     
     db.execute_many(query=sql, records=records)
 
-def insert_chunk():
-    pass
+def insert_chunk(metadata, chunks:List, embeddings:List, vectordb: VectorDB, db: Database):
+    reportid = [metadata['reportid']]*len(chunks)
+    records = [
+    (str(uuid.uuid4()), reportid[i], chunks[i], embeddings[i])
+    for i in range(len(chunks))
+    ]
 
-def insert_all(metadata, bs: str|dict, ics: str|dict, cf: str|dict , vectordb: VectorDB, db: Database):
+    sql = """
+    INSERT INTO "chunkEmbedding" (id, reportid, text, embedding)
+    VALUES (%s, %s, %s, %s);
+    """
+    
+    db.execute_many(query=sql, records=records)
+
+def insert_all(metadata, bs: str|dict, ics: str|dict, cf: str|dict, chunks:List, embeddings:List , vectordb: VectorDB, db: Database):
     insert_metadata(metadata, db)
     with concurrent.futures.ThreadPoolExecutor() as executor:
         balancesheet_future = executor.submit(insert_balancesheet, metadata, bs, vectordb, db)
         income_future = executor.submit(insert_income, metadata, ics, vectordb, db)
         cashflow_future = executor.submit(insert_cashflow, metadata, cf, vectordb, db)
-        
+        chunk_future = executor.submit(insert_chunk, metadata, chunks, embeddings, vectordb, db)
+
         balancesheet_future.result() 
         income_future.result()
         cashflow_future.result()
-
+        chunk_future.result()
 
 if __name__ == '__main__':
     metadata = {

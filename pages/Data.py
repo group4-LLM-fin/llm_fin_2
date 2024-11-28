@@ -51,6 +51,7 @@ def delete():
                 db.delete(table_name="CASHFLOW", conditions={'reportid': id})
                 db.delete(table_name="BALANCESHEET", conditions={'reportid': id})
                 db.delete(table_name="METADATA", conditions={'reportid': id})
+                db.delete(table_name="chunkEmbedding", conditions={'reportid': id})
             # Reset states after deletion
             st.session_state.delete_triggered = False
             st.session_state.to_delete = []

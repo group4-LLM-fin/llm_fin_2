@@ -135,7 +135,7 @@ def chunking(text):
     text = text = text.replace('.\n\n', '. ').replace(
         '\n\n', '. ').replace('\n', ' ')
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=2000, chunk_overlap=40)
+        chunk_size=500, chunk_overlap=40)
     texts = text_splitter.split_text(text)
     return texts
 

@@ -13,7 +13,7 @@ from openai import OpenAI
 import fitz
 from PIL import Image
 from OCR.insertData import insert_all
-from utils.pallelize_reading import *
+from utils.parallelize_reading import *
 import concurrent.futures
 
 load_dotenv(override=True)
@@ -132,9 +132,10 @@ if st.button("Upload"):
 
         # Run each section in parallel
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            tab2_future = executor.submit(process_balancesheet, images, sections["Balance Sheet"], gemini, metadata)
-            tab3_future = executor.submit(process_incomestatement, images, sections["Income Statement"], gemini, metadata)
-            tab4_future = executor.submit(process_cashflow, images, sections["Cash Flow Statement"], gemini, metadata)
+            tab2_future = executor.submit(process_balancesheet, images, sections["Balance Sheet"], gpt, metadata)
+            tab3_future = executor.submit(process_incomestatement, images, sections["Income Statement"], gpt, metadata)
+            tab4_future = executor.submit(process_cashflow, images, sections["Cash Flow Statement"], gpt, metadata)
+            chunk_embeddings = executor.submit(process_explanation, explaination_part, gpt)
 
         with tab2:
             with st.spinner('Read Balance Sheet...'):
@@ -154,6 +155,8 @@ if st.button("Upload"):
             st.subheader("**Cash Flow Statement:**")
             st.table(cashflow)
         
+        chunk_embeddings_res = chunk_embeddings.result()
+        
         # Upload to database
         with st.spinner('Upload your fiancial statement...'):
             try:
@@ -161,6 +164,8 @@ if st.button("Upload"):
                     metadata=metadata,
                     bs = balancesheet,
                     ics= incomestatement,
+                    chunks= explaination_part,
+                    embeddings = chunk_embeddings_res,
                     cf = cashflow,
                     vectordb= vectordb,
                     db = db
