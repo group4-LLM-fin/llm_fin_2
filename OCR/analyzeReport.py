@@ -10,7 +10,6 @@ from PIL import Image
 import platform
 from concurrent.futures import ThreadPoolExecutor
 
-
 def find_table(images):
     if platform.system() == "Linux":
         pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
@@ -62,6 +61,7 @@ def find_table(images):
         text = pytesseract.image_to_string(images[j], lang='vie')
         if result[j] == 4:
             return chunking(text)
+        print(f'Read page {j}')
         return None
 
     with ThreadPoolExecutor() as executor:
