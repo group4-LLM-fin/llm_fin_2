@@ -7,9 +7,10 @@ This app is an implementation of an end-to-end model for LLM finacial document u
 
 Before you can run this app, make sure you have the following prerequisites installed:
 
-- Python 3.8 or higher
+- Python 3.9 or higher
+- API Key for: OPENAI, GOOGLE-GENAI, VOYAGEAI
+- Database
 - Pip (Python package manager)
-- [Streamlit](https://streamlit.io/) (if not already installed, you can install it using `pip install streamlit`)
 - Other required Python packages (see the [Installation](#installation) section)
 
 ### Clone the Repository
@@ -30,6 +31,10 @@ Install dependencies
 ```cmd
 pip install -r requirements.txt
 ```
+
+### Add env variable
+- Create .env file in root of project
+- Add environment variable like in .env.example file
 
 ### Start the app
 ```cmd
