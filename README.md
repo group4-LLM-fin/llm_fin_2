@@ -70,8 +70,8 @@ Before you can run this app, make sure you have the following prerequisites inst
 To get started, clone this repository to your local machine using the following command:
 
 ```cmd
-git clone https://github.com/group4-LLM-fin/llm_fin.git
-cd llm_fin
+git clone https://github.com/group4-LLM-fin/llm_fin_2.git
+cd llm_fin_2
 ```
 ### Installation
 Create and activate a virtual environment (optional but recommended)
