@@ -1,50 +1,140 @@
-import json
-from dotenv import load_dotenv
-from langchain_community.utilities import SQLDatabase
-from langchain_community.tools.sql_database.tool import QuerySQLDataBaseTool
-from langchain_openai import ChatOpenAI
-from langchain.chat_models import ChatOpenAI
-from langchain.chains import create_sql_query_chain
+import os
 import re
+import openai
+import json
+import psycopg2
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.engine import URL
+from langchain.chat_models import ChatOpenAI
+import tiktoken
+import yaml
+from database.vectorDB import VectorDB
+from langchain_community.utilities import SQLDatabase
+from langchain.chains import create_sql_query_chain
+from langchain_community.tools.sql_database.tool import QuerySQLDataBaseTool
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+import ast
+import time
+from langchain_openai import ChatOpenAI
+
 
 load_dotenv()
 
 class Quest2SQL:
-    def __init__(self, model="gpt-4o-mini", engine=None, db_structure=None, acc_name=None):
+    def __init__(self, model="gpt-4o-mini", engine=None, db_structure=None, acc_name=None, db = None):
+        self.model = model
         self.llm = ChatOpenAI(model=model)
         self.sql_engine = engine
         self.sql_database = SQLDatabase(engine=engine)
         self.db_structure = db_structure
         self.acc_name = acc_name
+        self.db = db
 
+    def extract_bank_name(self, question):
+        prompt = f"""
+        Bạn là một chuyên gia phân tích tài chính với câu hỏi liên quan đến ngân hàng. Hãy trích xuất chỉ tên ngân hàng từ câu hỏi sau, luôn cho vào trong list, không thêm thắt ghi chú, nếu không có, trả về none:
+        Câu hỏi: "{question}"
+        Tên ngân hàng
+        """
+        # Change the input to a string
+        response = self.llm.invoke(prompt)  # Pass the prompt directly as a string
+        return response.content.strip()
+    
+    def query_bank_to_symbol(self, question):
+        try:
+            bank_names_str = self.extract_bank_name(question)
+            if bank_names_str == "[]":
+                return []  # Return empty list if no bank names found
+            query_texts = ast.literal_eval(bank_names_str)
+            print(query_texts)
+        except (ValueError, SyntaxError) as e:
+            print(f"Error parsing bank names: {e}")
+            return []  # Return an empty list if parsing fails
+
+        bank_list = []
+        for bank in query_texts:
+            if not bank:
+                print("Không có tên ngân hàng để truy vấn.")
+                continue
+
+            try:
+                database = self.db
+                # Query with L2 distance
+                result = database.query_with_distance_bank(
+                    bank, 
+                    table_name="BANK", 
+                    distance='L2',
+                    columns=["symbol"], 
+                    limit=5
+                )
+                bank_list.append(result[0][0]['symbol'])
+            except Exception as e:
+                print(f"Đã xảy ra lỗi khi truy vấn cho ngân hàng '{bank}': {e}")
+        
+        return bank_list
+
+#Lower name để tìm đc, embedding name
     def chain_of_thought_prompt(self, question):
         prompt = f"""
-    Bạn là một chuyên gia phân tích tài chính chuyên sâu. Hãy phân tích câu hỏi dưới đây và thực hiện các bước để trả lời chính xác và chi tiết.
+     Bạn là một chuyên gia phân tích tài chính chuyên sâu. Hãy phân tích câu hỏi dưới đây và thực hiện các bước để trả lời chính xác và chi tiết.
 
-    Câu hỏi: "{question}"
+    **Câu hỏi**: "{question}"
 
-    Bước 1: Xác định loại vấn đề cần phân tích và chia nhỏ vấn đề
-    - Phân tích yêu cầu và chia nhỏ bài toán: [Xác định các vấn đề cụ thể cần được phân tích từ câu hỏi, chẳng hạn như các chỉ số tài chính hoặc thông tin tài sản liên quan]
-    - Từ đó, hãy tạo 1 danh sách với các câu lệnh nhỏ hơn với các vấn đề nhỏ đã được chia
-    Ví dụ: ['Hãy tìm lợi nhuận sau thuế và tổng vốn rồi tính tỷ lệ ROE rồi tìm ngân hàng có ROE lớn nhất năm 2024 quý 2","Hãy tìm tổng tài sản của ACB năm 2024 quý 2"]
+    ### Bước 1: Xác định loại vấn đề cần phân tích và chia nhỏ vấn đề
+    - **Dịch câu hỏi sang tiếng Anh**.
+    - **Phân tích yêu cầu** và chia nhỏ bài toán: [Xác định các vấn đề cụ thể cần được phân tích từ câu hỏi, chẳng hạn như các chỉ số tài chính hoặc thông tin tài sản liên quan].
+    - Tạo danh sách các vấn đề cụ thể cần giải quyết, ví dụ:
+      - ['Tìm lợi nhuận sau thuế và tổng vốn, sau đó tính tỷ lệ ROE và tìm ngân hàng có ROE lớn nhất trong quý 2 năm 2024', 
+      - 'Tìm tổng tài sản của ACB trong quý 2 năm 2024'].
 
-    Bước 2: Xác định thông tin cơ bản cần truy vấn từ vấn đề ở Bước 1
-    - Tên công ty: [Liệt kê rõ những công ty được đề cập, ví dụ: BIDV, Vietcombank, ACB]
-    - Năm tài chính: [Ghi rõ năm tài chính cần phân tích, ví dụ: 2024]
-    - Kỳ báo cáo: [Xác định kỳ báo cáo cụ thể, chẳng hạn quý 1, quý 2, quý 3, hoặc "Cả năm". Nếu kỳ không được chỉ định rõ ràng, mặc định là "Cả năm"]
-    - Mục cụ thể trong báo cáo: [Dựa vào các vấn đề đã được chia nhỏ, xác định rõ mục cần tìm trong báo cáo tài chính. Ví dụ: doanh thu, lợi nhuận ròng, tổng tài sản, ROE (Return on Equity). Nếu liên quan đến các chỉ số tài chính, xác định các thành phần cụ thể để tính toán, ví dụ: lợi nhuận sau thuế, vốn chủ sở hữu]
-    - Loại báo cáo: [Xác định rõ loại báo cáo tài chính cần thiết, chẳng hạn Bảng cân đối kế toán, Báo cáo kết quả kinh doanh, Báo cáo lưu chuyển tiền tệ]
+    ### Bước 2: Xác định thông tin cơ bản cần truy vấn từ vấn đề ở Bước 1
+    - **Chuyển tên ngân hàng thành symbol trong bảng BANK**:
+      - Sử dụng danh sách đã được ánh xạ từ tên ngân hàng sang symbol: {self.query_bank_to_symbol(question)}.
+      - Xem xét các symbol gần đúng để xác định Symbol ngân hàng cần tìm.
+    - **Năm tài chính**: [Ví dụ: 2024].
+    - **Kỳ báo cáo**: [Ví dụ: quý 1, quý 2, quý 3, quý 4].
+    - **Mục cụ thể trong báo cáo**: [Dựa vào bài toán đã chia nhỏ, xác định rõ mục cần truy vấn, ví dụ: doanh thu, lợi nhuận ròng, ROE].
+    - **Loại báo cáo tài chính**: [Xác định rõ loại báo cáo cần thiết, ví dụ: bảng cân đối kế toán, báo cáo kết quả kinh doanh].
 
-    Bước 3: Trả về câu truy vấn SQL dựa trên các thông tin đã xác định ở bước 1, 2
-    - Với từng vấn đề trong danh sách trên, hãy tạo từng câu truy vấn sql cho từng vấn đề nhỏ
-    - Cấu trúc database của bạn: {json.dumps(self.db_structure)}
-    - Danh sách tên các tài khoản có sẵn: {self.acc_name}
-    Đây là ví dụ: {self.load_example()}  
-    
-    Lưu ý: Chỉ sử dụng dữ liệu từ database đã kết nối và đảm bảo truy vấn chính xác từng chỉ số tài chính được yêu cầu. Luôn luôn trả về kèm tên tài khoản và metadata.
-    Hãy làm tuần tự từ bước 1
+    ### Bước 3: Tạo câu truy vấn SQL cho từng vấn đề
+    - Với mỗi vấn đề từ Bước 1 và thông tin bước 2, tạo một câu truy vấn SQL tương ứng.
+    - **Cấu trúc database**: {self.db_structure}.
+    - **Danh sách tên các tài khoản có sẵn**: {json.dumps(self.acc_name)}.
+    - Ví dụ truy vấn: {self.load_example()}.
+
+    ### Bước 4: Giải thích và kiểm tra lại lỗi truy vấn SQL
+    - **Giải thích từng câu truy vấn SQL**:
+      - Mô tả cách truy vấn thực hiện và lý do phù hợp với yêu cầu bài toán.
+    - **Kiểm tra lại**:
+      - So sánh câu truy vấn với yêu cầu của câu hỏi, xác định xem nó đã chính xác chưa.
+      - Nếu sai, sửa lại câu truy vấn bằng cách quay lại từ Bước 1.
+
+    ### Bước 5: Ghi lại câu truy vấn SQL cuối cùng
+    - Sau khi đảm bảo các câu truy vấn chính xác:
+      - Ghi lại câu truy vấn SQL theo định dạng:
+        ```sql
+        [Câu truy vấn SQL chính xác]
+        ```
+      - **Lưu ý**:
+        - Chỉ sử dụng dữ liệu từ database đã kết nối.
+        - Với tên ngân hàng viết tắt, ưu tiên `symbol` hoặc `abbreviation` nếu cần.
+        - Sử dụng bảng `ACCNO` để tìm số tài khoản chung khi không có thông tin thời gian/ngân hàng cụ thể.
+        - Với các câu hỏi liệt kê, không giới hạn số kết quả.
+
+    Hãy làm tuần tự từ Bước 1 và trả lời bằng tiếng Việt.
     """
         return prompt
+    
+    def get_token_usage(self, text):
+        """
+        Returns the estimated token usage for the given text.
+        """
+        encoding = tiktoken.encoding_for_model(self.model)  # Ensure the model is specified
+
+        # Calculate the number of tokens for the text
+        return len(encoding.encode(text))
     
     def load_example(self):
         """Loads the example text from example.txt."""
@@ -87,43 +177,45 @@ class Quest2SQL:
             except Exception as e:
                 print(f"Error executing query: {query}\nError: {e}")
                 results.append(None)  # Add None if there is an error
-                ##Thêm lệnh để quay tròn lại ko là bị chết ở đây(optional)
+                
         return results
     
 
     def get_result(self, question):
         system_role_template = """
-        Given the following user question, corresponding SQL query, and SQL result, answer the user question.
+        Given the following user question, corresponding SQL queries, and SQL results, provide a detailed answer.
         Question: {question}
-        SQL Query: {queries}
-        SQL Result: {results}
+        SQL Queries: {queries}
+        SQL Results: {results}
         Answer:
         """
 
+        total_input_tokens = 0
+        total_output_tokens = 0
+
         try:
-            # Generate the SQL query from the user question
+            start_time = time.time()  # Ensure this is correct
+            # Step 1: Calculate tokens for the question
+            prompt_cot = self.chain_of_thought_prompt(question)  # Pass bank_symbol here
+            input_tokens_question = self.get_token_usage(prompt_cot)
+            total_input_tokens += input_tokens_question
+            
+            # print(f"Input tokens for question: {input_tokens_question}")
+
+            # Step 2: Generate SQL queries from the question
             sql_queries = self.get_sql_query(question)
-            if not sql_queries:
+            if sql_queries is None:
                 raise ValueError("Failed to generate SQL query from the question.")
 
-            # Execute all SQL queries and retrieve results
+            input_tokens_sql = sum(self.get_token_usage(query) for query in sql_queries)
+            total_input_tokens += input_tokens_sql
+            # print(f"Input tokens for SQL queries: {input_tokens_sql}")
+
+            # Step 3: Execute all SQL queries and get results
             sql_results = self.execute_sql_queries(sql_queries)
 
-            # # Format the prompt to generate the final answer
-            # answer_prompt = PromptTemplate.from_template(system_role)
-            # answer_chain = answer_prompt | self.llm | StrOutputParser()
-
-            # # Prepare the answer input with actual values
-            # answer_input = {
-            #     "question": question,
-            #     "query": sql_query,
-            #     "result": sql_result
-            # }
-
-            # # Generate the final answer
-            # final_answer = answer_chain.invoke(answer_input)
             return sql_results, sql_queries
-
+        
         except Exception as e:
-            print(f"Error executing SQL query or generating result: {e}")
-            return None
+            print(f"Error: {e}")
+            return None, None

@@ -150,7 +150,51 @@ class VectorDB:
             
             return []
     
-    
+    def query_with_distance_bank(self, query_texts: list|str, distance: str = 'L2', **kwargs):
+        table_name = kwargs.get("table_name")
+        limit = kwargs.get("limit", 5)
+        selected_columns = kwargs.get("columns", ["id", "reportId", "text"]) 
+        # Get multiple where clauses from kwargs
+        where_clauses = kwargs.get("where_clauses", [])
+        
+        # Combine where clauses with 'AND' or 'OR'
+        if where_clauses:
+            where_clause = " AND ".join(where_clauses)  # Combine with AND, change to OR if needed
+        else:
+            where_clause = "1=1"  # No condition, selects all
+
+        try:
+            # Generate the query embedding using the embedder
+            query_embeddings = get_embedding_voyage(texts=query_texts, client=vo)
+            res = []
+            for query_embedding in query_embeddings:
+                embedding_str = f"ARRAY{query_embedding}::vector"
+                
+                # Construct the SQL query to fetch results with similarity distance
+                column_str = ", ".join(selected_columns)  
+                query = f"""
+                    SELECT {column_str}, bankembedding {distance_dict[distance]} {embedding_str} AS distance
+                    FROM "{table_name}"
+                    WHERE {where_clause}
+                    ORDER BY distance
+                    LIMIT {limit};
+                """
+                self.cursor.execute(query)
+                results = self.cursor.fetchall()
+
+                res.append([
+                {column: value for column, value in zip(selected_columns + ["distance"], row)}
+                for row in results
+                ])
+
+            # Return results with column names and distance
+            return res
+        
+        except Exception as e:
+            print("Error querying with distance:", e)
+            self.rollback()
+            return []
+
     def execute(self, query, params=None):
         """Execute any SQL command."""
         try:

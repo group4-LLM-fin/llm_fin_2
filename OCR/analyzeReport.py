@@ -20,7 +20,7 @@ def find_table(images):
         1: ('balance sheet', ['tien mat', 'vang', 'da quy']),
         2: ('income statement', ['thu nhap lai thuan', 'thu nhap thuan', 'thu nhap lai']),
         3: ('cash flow', ['luu chuyen tien']),
-        4: ('thuyet minh', ['don vi bao cao', 'dac diem hoat dong', 'thong tin ve ngan hang', 'thong tin ngan hang']),
+        4: ('thuyet minh', ['don vi bao cao', 'dac diem hoat dong', 'thong tin ve ngan hang', 'thong tin ngan hang','thong tin chung','gioi thieu ve ngan hang','thong tin khai quat']),
     }
     metadata = ""
     result = [np.nan] * len(images)

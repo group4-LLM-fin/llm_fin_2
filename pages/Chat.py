@@ -71,11 +71,15 @@ def getDatabaseInfo():
         FROM "ACCNO"
         """
     acc_name = sql_database.run(acc_name_query)
-    
-    return db_structure, acc_name
+
+    reports_query = """
+        SELECT reportid FROM "METADATA"
+    """
+    reports = sql_database.run(reports_query)
+    return db_structure, acc_name, reports
 
 gpt, gemini, inspector, sql_engine, sql_database, vectordb = initializing()
-db_structure, acc_name = getDatabaseInfo()
+db_structure, acc_name, reports = getDatabaseInfo()
 
 with st.chat_message(avatar="graphics/ico.jpg", name="system"):
     st.markdown("© 2024 Grp4ML1 - DSEB64A. All rights reserved.")
@@ -115,12 +119,12 @@ if input_text:
     st.session_state.memory.chat_memory.add_message({"role": "user", "content": input_text})
     query_res, sql_queries = routing(history = st.session_state.memory.load_memory_variables({}), 
                     llm=gpt, model='gpt-4o-mini',
-                    vectordb= vectordb,
+                    vectordb= vectordb, reports = reports,
                     sql_engine=sql_engine, acc_name=acc_name,
                     db_structure=db_structure)
     
     if sql_queries:
-        st.session_state.memory.chat_memory.add_message({"role": "system", "content": f"SQL queries: {sql_queries}, query result: {query_res}"})
+        st.session_state.memory.chat_memory.add_message({"role": "system", "content": f"SQL queries: {sql_queries}, query result: {query_res}. The result is in million of VND or a ratio."})
     else:
         st.session_state.memory.chat_memory.add_message({"role": "system", "content": f"Query results: {query_res}"})
 
