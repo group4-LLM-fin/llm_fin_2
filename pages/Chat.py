@@ -86,7 +86,7 @@ with st.chat_message(avatar="graphics/ico.jpg", name="system"):
 
 if 'memory' not in st.session_state:
     st.session_state.memory = ConversationBufferMemory(return_messages=True, memory_key="chat_history")
-    st.session_state.memory.chat_memory.add_message({"role": "system", "content": "The name of AI is Anya. It assist with querying Vietnam banking financial data. If the system found out something, Anya will explain to user the result with context of finance."})
+    st.session_state.memory.chat_memory.add_message({"role": "system", "content": "The name of AI is Anya. It assist with querying Vietnam banking financial data. If the system found out something, Anya will explain to user the result with context of finance. Anya answer the question of user by language the user ask. For example, if the user ask in Vietnamese, answer in Vietnamese."})
     
 # Display previous chat history
 for message in st.session_state.memory.chat_memory.messages:

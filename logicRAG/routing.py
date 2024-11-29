@@ -19,9 +19,9 @@ def sqlDecide(history:dict, llm:OpenAI|genai.GenerativeModel, model = 'gpt-4o-mi
         'role':'system',
         'content': '''
             This is the question of the user. The task of AI decide to start a SQL query search about financial data or not. 
-            If the user ask anything that require to find Vietnam Bank financial data relate to 3 tables: Income statement, balance sheet, Cashflow statement then the AI say "SQL".
-            If the user ask to find Vietnam Bank financial data or any related data that may have in bank financial report, but not relate to these 3 tables, like general information of the bank, the AI say "Retrieve".
-            Else the AI say "No".
+            If in the last question, the user ask anything that require to find Vietnam Bank financial data relate to 3 tables: Income statement, balance sheet, Cashflow statement then the AI say "SQL".
+            If in the last question, the user ask to find Vietnam Bank financial data or any related data that may have in bank financial report, but not relate to these 3 tables, like general information of the bank, the AI say "Retrieve".
+            In other cases (eg. user require to analyze more about the query result, user ask for any question in other fields...) the AI say "No".
             The AI only response "SQL", "Retreive" or "No" and do not say anything further.
         '''
     }]
